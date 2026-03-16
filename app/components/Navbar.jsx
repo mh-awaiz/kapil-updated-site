@@ -1,18 +1,45 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { FaShoppingCart, FaBars, FaTimes, FaChevronDown } from "react-icons/fa";
-import { FaUser } from "react-icons/fa";
+import {
+  FaShoppingCart,
+  FaBars,
+  FaTimes,
+  FaChevronDown,
+  FaUser,
+} from "react-icons/fa";
+import { MdCookie, MdSpa, MdHome, MdOutdoorGrill } from "react-icons/md";
+import { GiChickenLeg } from "react-icons/gi";
 import Image from "next/image";
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useCart } from "../context/CartContext";
 
 const groceryLinks = [
-  { label: "Snacks & Drinks", href: "/groceries/snacks-drinks", emoji: "🍿" },
-  { label: "Beauty & Personal Care", href: "/groceries/beauty-personal-care", emoji: "💄" },
-  { label: "Home & Lifestyle", href: "/groceries/home-lifestyle", emoji: "🏠" },
-  { label: "Food – Veg", href: "/groceries/food-veg", emoji: "🥦" },
-  { label: "Food – Non Veg", href: "/groceries/food-nonveg", emoji: "🍗" },
+  {
+    label: "Snacks & Drinks",
+    href: "/groceries/snacks-drinks",
+    icon: <MdCookie size={16} />,
+  },
+  {
+    label: "Beauty & Personal Care",
+    href: "/groceries/beauty-personal-care",
+    icon: <MdSpa size={16} />,
+  },
+  {
+    label: "Home & Lifestyle",
+    href: "/groceries/home-lifestyle",
+    icon: <MdHome size={16} />,
+  },
+  {
+    label: "Food – Veg",
+    href: "/groceries/food-veg",
+    icon: <MdOutdoorGrill size={16} />,
+  },
+  {
+    label: "Food – Non Veg",
+    href: "/groceries/food-nonveg",
+    icon: <GiChickenLeg size={16} />,
+  },
 ];
 
 const Navbar = () => {
@@ -52,7 +79,7 @@ const Navbar = () => {
             <div className="relative">
               <div className="absolute inset-0 bg-[#17d492] blur-md opacity-0 group-hover:opacity-9 transition-opacity"></div>
               <Image
-                src="/newlogonav.png"
+                src="/logonav.png"
                 alt="Kapil Store Logo"
                 width={100}
                 height={100}
@@ -87,7 +114,7 @@ const Navbar = () => {
                     href={link.href}
                     className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:text-[#17d492] hover:bg-[#17d492]/10 transition"
                   >
-                    <span>{link.emoji}</span>
+                    <span className="text-[#17d492]">{link.icon}</span>
                     {link.label}
                   </Link>
                 ))}
@@ -108,7 +135,10 @@ const Navbar = () => {
               href="/cart"
               className="group relative p-2 text-white hover:text-[#17d492] transition-colors"
             >
-              <FaShoppingCart size={22} className="group-hover:rotate-12 transition-transform" />
+              <FaShoppingCart
+                size={22}
+                className="group-hover:rotate-12 transition-transform"
+              />
               {cartCount > 0 && (
                 <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[#17d492] text-[#22323c] text-xs font-black flex items-center justify-center">
                   {cartCount}
@@ -124,7 +154,11 @@ const Navbar = () => {
                   className="flex items-center gap-2 text-slate-300 hover:text-[#17d492] transition"
                 >
                   {session.user?.image ? (
-                    <img src={session.user.image} alt="" className="w-8 h-8 rounded-full border-2 border-[#17d492]" />
+                    <img
+                      src={session.user.image}
+                      alt=""
+                      className="w-8 h-8 rounded-full border-2 border-[#17d492]"
+                    />
                   ) : (
                     <FaUser size={18} />
                   )}
@@ -133,8 +167,12 @@ const Navbar = () => {
                 {userMenu && (
                   <div className="absolute right-0 top-full mt-2 w-48 bg-[#1a2830] border border-[#17d492]/20 rounded-2xl shadow-2xl z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-[#17d492]/10">
-                      <p className="text-sm font-bold text-white truncate">{session.user?.name}</p>
-                      <p className="text-xs text-slate-500 truncate">{session.user?.email}</p>
+                      <p className="text-sm font-bold text-white truncate">
+                        {session.user?.name}
+                      </p>
+                      <p className="text-xs text-slate-500 truncate">
+                        {session.user?.email}
+                      </p>
                     </div>
                     <Link
                       href="/profile"
@@ -144,7 +182,10 @@ const Navbar = () => {
                       My Orders
                     </Link>
                     <button
-                      onClick={() => { signOut(); setUserMenu(false); }}
+                      onClick={() => {
+                        signOut();
+                        setUserMenu(false);
+                      }}
                       className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition"
                     >
                       Sign Out
@@ -175,7 +216,9 @@ const Navbar = () => {
       {/* Mobile Menu */}
       <div
         className={`fixed inset-x-0 top-[72px] bg-[#1a2830] border-t border-white/5 transition-all duration-500 ease-in-out md:hidden overflow-y-auto max-h-[80vh] ${
-          open ? "translate-y-0 opacity-100 visible" : "-translate-y-4 opacity-0 invisible"
+          open
+            ? "translate-y-0 opacity-100 visible"
+            : "-translate-y-4 opacity-0 invisible"
         }`}
       >
         <div className="flex flex-col gap-1 p-6">
@@ -198,7 +241,9 @@ const Navbar = () => {
               className="w-full flex items-center justify-between text-xl font-black text-white hover:text-[#17d492] transition py-3 border-b border-white/5"
             >
               Groceries
-              <FaChevronDown className={`text-sm transition-transform ${groceryOpen ? "rotate-180" : ""}`} />
+              <FaChevronDown
+                className={`text-sm transition-transform ${groceryOpen ? "rotate-180" : ""}`}
+              />
             </button>
             {groceryOpen && (
               <div className="pl-4 pb-2">
@@ -209,10 +254,17 @@ const Navbar = () => {
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-3 py-2.5 text-slate-400 hover:text-[#17d492] transition text-sm"
                   >
-                    {link.emoji} {link.label}
+                    <span className="text-[#17d492]">{link.icon}</span>
+                    {link.label}
                   </Link>
                 ))}
-                <Link href="/groceries" onClick={() => setOpen(false)} className="block py-2 text-sm text-[#17d492] font-bold">All Groceries →</Link>
+                <Link
+                  href="/groceries"
+                  onClick={() => setOpen(false)}
+                  className="block py-2 text-sm text-[#17d492] font-bold"
+                >
+                  All Groceries →
+                </Link>
               </div>
             )}
           </div>
@@ -220,8 +272,19 @@ const Navbar = () => {
           <div className="mt-4 pt-4 border-t border-white/10">
             {session ? (
               <>
-                <Link href="/profile" onClick={() => setOpen(false)} className="block py-3 text-slate-300 font-bold hover:text-[#17d492] transition">My Orders</Link>
-                <button onClick={() => signOut()} className="block py-3 text-red-400 font-bold">Sign Out</button>
+                <Link
+                  href="/profile"
+                  onClick={() => setOpen(false)}
+                  className="block py-3 text-slate-300 font-bold hover:text-[#17d492] transition"
+                >
+                  My Orders
+                </Link>
+                <button
+                  onClick={() => signOut()}
+                  className="block py-3 text-red-400 font-bold"
+                >
+                  Sign Out
+                </button>
               </>
             ) : (
               <button
@@ -232,7 +295,9 @@ const Navbar = () => {
               </button>
             )}
             <div className="mt-6 pt-4 border-t border-white/10">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Support</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                Support
+              </p>
               <p className="text-[#17d492] font-bold mt-1">+91 7982670413</p>
             </div>
           </div>

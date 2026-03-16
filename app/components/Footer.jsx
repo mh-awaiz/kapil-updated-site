@@ -15,7 +15,7 @@ const Footer = () => {
           {/* Brand Column */}
           <div className="col-span-1 md:col-span-1">
             <h2 className="text-2xl font-black tracking-tighter text-[#17d492]">
-              STUDENT<span className="text-white"> STATIONERY</span>
+              Kapil<span className="text-white"> Store</span>
             </h2>
             <p className="text-sm mt-4 text-slate-400 leading-relaxed font-medium">
               Providing Jamia students with top-quality assignments and 

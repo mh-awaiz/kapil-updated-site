@@ -11,7 +11,7 @@ export default function SignInClient() {
     <div className="min-h-screen bg-[#22323c] flex items-center justify-center px-4 pt-20">
       <div className="bg-[#1a2830] rounded-2xl p-8 w-full max-w-sm border border-white/5 text-center shadow-2xl">
         <Image
-          src="/newlogonav.png"
+          src="/logonav.png"
           alt="Kapil Store"
           width={100}
           height={100}

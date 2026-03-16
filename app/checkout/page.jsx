@@ -4,7 +4,8 @@ import { useCart } from "../context/CartContext.js";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import Script from "next/script";
+import { FaTimes, FaCheckCircle } from "react-icons/fa";
+import { MdQrCode2 } from "react-icons/md";
 
 export default function CheckoutPage() {
   const { cart, clearCart } = useCart();
@@ -19,14 +20,35 @@ export default function CheckoutPage() {
     timeSlot: "",
   });
   const [isJamiaStudent, setIsJamiaStudent] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [paymentMethod, setPaymentMethod] = useState("upi"); // default to upi since cod is disabled
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState("");
 
+  // UPI QR modal states
+  const [showQR, setShowQR] = useState(false);
+  const [utrNumber, setUtrNumber] = useState("");
+  const [utrError, setUtrError] = useState("");
+
   const deliveryCharge = isJamiaStudent === false ? 30 : 0;
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const grandTotal = total + deliveryCharge;
+
+  const validateForm = () => {
+    if (!form.name || !form.phone || !form.address) {
+      alert("Please fill all required fields");
+      return false;
+    }
+    if (isJamiaStudent === null) {
+      alert("Please confirm if you are a Jamia student");
+      return false;
+    }
+    if (isJamiaStudent && !form.timeSlot) {
+      alert("Please select a delivery time slot");
+      return false;
+    }
+    return true;
+  };
 
   const placeOrder = async (extraFields = {}) => {
     const res = await fetch("/api/order", {
@@ -46,23 +68,29 @@ export default function CheckoutPage() {
     return { ok: res.ok, data };
   };
 
-  const handleCOD = async () => {
-    if (!form.name || !form.phone || !form.address) {
-      alert("Please fill all required fields");
+  const handleUPIClick = () => {
+    if (!validateForm()) return;
+    setShowQR(true);
+  };
+
+  const handleUPIConfirm = async () => {
+    if (!utrNumber.trim()) {
+      setUtrError("Please enter your UTR / Transaction ID");
       return;
     }
-    if (isJamiaStudent === null) {
-      alert("Please confirm if you are a Jamia student");
+    if (utrNumber.trim().length < 6) {
+      setUtrError("UTR number seems too short. Please check.");
       return;
     }
-    if (isJamiaStudent && !form.timeSlot) {
-      alert("Please select a delivery time slot");
-      return;
-    }
+    setUtrError("");
     setLoading(true);
-    const { ok, data } = await placeOrder();
+    const { ok, data } = await placeOrder({
+      paymentStatus: "pending_verification",
+      utrNumber: utrNumber.trim(),
+    });
     setLoading(false);
     if (ok) {
+      setShowQR(false);
       setPlacedOrderId(data.orderId);
       setSuccess(true);
       clearCart();
@@ -72,83 +100,35 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleRazorpay = async () => {
-    if (!form.name || !form.phone || !form.address) {
-      alert("Please fill all required fields");
-      return;
-    }
-    if (isJamiaStudent === null) {
-      alert("Please confirm if you are a Jamia student");
-      return;
-    }
-    setLoading(true);
-    try {
-      const rzpRes = await fetch("/api/payment/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: grandTotal }),
-      });
-      const rzpOrder = await rzpRes.json();
-
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: rzpOrder.amount,
-        currency: "INR",
-        name: "Kapil Store",
-        description: "Order Payment",
-        order_id: rzpOrder.id,
-        prefill: { name: form.name, email: form.email, contact: form.phone },
-        theme: { color: "#17d492" },
-        handler: async (response) => {
-          const { ok, data } = await placeOrder({
-            razorpayOrderId: rzpOrder.id,
-            paymentStatus: "paid",
-          });
-          if (ok) {
-            await fetch("/api/payment/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ ...response, orderId: data.orderId }),
-            });
-            setPlacedOrderId(data.orderId);
-            setSuccess(true);
-            clearCart();
-          }
-          setLoading(false);
-        },
-        modal: { ondismiss: () => setLoading(false) },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      console.error(err);
-      alert("Payment failed. Please try again.");
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = () => {
-    if (paymentMethod === "cod") handleCOD();
-    else handleRazorpay();
+    handleUPIClick();
   };
 
+  // ── Success Screen ──────────────────────────────────────────────
   if (success) {
     return (
       <div className="min-h-screen bg-[#22323c] text-[#f5f5f5] flex items-center justify-center px-4 pt-24">
         <div className="text-center max-w-sm">
-          <p className="text-6xl mb-4">🎉</p>
-          <h2 className="text-2xl font-black text-[#17d492] mb-2">Order Placed!</h2>
+          <FaCheckCircle size={64} className="text-[#17d492] mx-auto mb-4" />
+          <h2 className="text-2xl font-black text-[#17d492] mb-2">
+            Order Placed!
+          </h2>
           <p className="text-white/70 mb-1">
-            Order ID: <span className="font-mono text-white">{placedOrderId}</span>
+            Order ID:{" "}
+            <span className="font-mono text-white">{placedOrderId}</span>
           </p>
-          <p className="text-white/50 text-sm mb-8">We'll contact you soon to confirm.</p>
+          <p className="text-yellow-400 text-sm mb-2 font-semibold">
+            Payment will be verified within 30 minutes.
+          </p>
+          <p className="text-white/50 text-sm mb-8">
+            We'll contact you soon to confirm.
+          </p>
           <div className="flex flex-col gap-3">
             <a
               href={`/track/${placedOrderId}`}
               className="bg-[#17d492] text-[#22323c] py-3 px-6 rounded-xl font-black hover:bg-[#14b87e] transition"
             >
-              🗺️ Track Your Order
+              Track Your Order
             </a>
             <a
               href="/"
@@ -162,9 +142,111 @@ export default function CheckoutPage() {
     );
   }
 
+  // ── UPI QR Modal ────────────────────────────────────────────────
+  const UPIModal = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
+      <div className="bg-[#1a2830] border border-[#17d492]/30 rounded-2xl w-full max-w-sm p-6 relative shadow-2xl">
+        <button
+          onClick={() => {
+            setShowQR(false);
+            setUtrNumber("");
+            setUtrError("");
+          }}
+          className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+        >
+          <FaTimes size={18} />
+        </button>
+
+        <div className="flex items-center gap-3 mb-5">
+          <MdQrCode2 size={28} className="text-[#17d492]" />
+          <div>
+            <h3 className="font-black text-white text-lg">Pay via UPI</h3>
+            <p className="text-slate-400 text-xs">
+              Scan the QR code below to pay
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-[#17d492]/10 border border-[#17d492]/20 rounded-xl px-4 py-3 mb-5 text-center">
+          <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">
+            Amount to Pay
+          </p>
+          <p className="text-3xl font-black text-[#17d492]">₹{grandTotal}</p>
+        </div>
+
+        <div className="flex flex-col items-center mb-5">
+          <div className="bg-white p-3 rounded-xl mb-3">
+            <img
+              src="/upi-qr.jpeg"
+              alt="UPI QR Code"
+              className="w-48 h-48 object-contain"
+              onError={(e) => {
+                e.target.style.display = "none";
+                e.target.nextSibling.style.display = "flex";
+              }}
+            />
+            <div
+              className="w-48 h-48 bg-gray-100 rounded-lg items-center justify-center flex-col gap-2 hidden"
+              style={{ display: "none" }}
+            >
+              <MdQrCode2 size={64} className="text-gray-400" />
+              <p className="text-xs text-gray-500 text-center px-2">
+                Add your QR image at /public/upi-qr.jpeg
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 text-center">
+            Open any UPI app (GPay, PhonePe, Paytm) and scan
+          </p>
+          <div className="mt-3 w-full bg-[#22323c] border border-white/10 rounded-xl px-4 py-2.5 text-center">
+            <p className="text-xs text-slate-500 mb-1">Or pay to UPI ID</p>
+            <p className="text-sm font-black text-white tracking-wide">
+              7982670413@sbi
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-xs font-bold text-[#17d492] uppercase tracking-widest mb-2">
+            Enter UTR / Transaction ID *
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. 423456789012"
+            value={utrNumber}
+            onChange={(e) => {
+              setUtrNumber(e.target.value);
+              setUtrError("");
+            }}
+            className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition text-white text-sm"
+          />
+          {utrError && <p className="text-red-400 text-xs mt-1">{utrError}</p>}
+          <p className="text-slate-600 text-xs mt-1">
+            Find this in your UPI app after payment — it's the 12-digit
+            reference number.
+          </p>
+        </div>
+
+        <button
+          onClick={handleUPIConfirm}
+          disabled={loading}
+          className={`w-full py-3.5 rounded-xl font-black transition text-[#22323c] ${
+            loading
+              ? "bg-[#17d492]/50 cursor-not-allowed"
+              : "bg-[#17d492] hover:bg-[#14b87e] active:scale-95"
+          }`}
+        >
+          {loading ? "Confirming..." : "I Have Paid – Confirm Order"}
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── Main Checkout ───────────────────────────────────────────────
   return (
     <>
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+      {showQR && <UPIModal />}
+
       <div className="min-h-screen bg-[#22323c] text-[#f5f5f5] py-10 px-4 pt-28">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl font-black mb-8 text-[#17d492]">Checkout</h1>
@@ -173,7 +255,9 @@ export default function CheckoutPage() {
             {/* LEFT - Delivery Details */}
             <div className="space-y-6">
               <div className="bg-[#1a2830] rounded-2xl p-6 border border-white/5">
-                <h2 className="text-lg font-black mb-4 text-[#17d492]">Delivery Details</h2>
+                <h2 className="text-lg font-black mb-4 text-[#17d492]">
+                  Delivery Details
+                </h2>
                 <div className="space-y-3">
                   <input
                     type="text"
@@ -187,7 +271,9 @@ export default function CheckoutPage() {
                     type="tel"
                     placeholder="Phone Number *"
                     value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, phone: e.target.value })
+                    }
                     className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition"
                     required
                   />
@@ -195,14 +281,18 @@ export default function CheckoutPage() {
                     type="email"
                     placeholder="Email *"
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, email: e.target.value })
+                    }
                     className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition"
                     required
                   />
 
                   {/* Jamia Student */}
                   <div>
-                    <p className="mb-2 font-bold text-[#17d492] text-sm">Are you a Jamia student? *</p>
+                    <p className="mb-2 font-bold text-[#17d492] text-sm">
+                      Are you a Jamia student? *
+                    </p>
                     <div className="flex gap-3">
                       {[
                         { val: true, label: "Yes (Free Delivery)" },
@@ -231,7 +321,9 @@ export default function CheckoutPage() {
                   {/* Time Slot for Jamia Students */}
                   {isJamiaStudent && (
                     <div>
-                      <p className="mb-2 font-bold text-[#17d492] text-sm">Select Delivery Time Slot *</p>
+                      <p className="mb-2 font-bold text-[#17d492] text-sm">
+                        Select Delivery Time Slot *
+                      </p>
                       <div className="flex flex-col gap-2">
                         {[
                           "Morning: 8:45 AM – 9:15 AM",
@@ -252,10 +344,12 @@ export default function CheckoutPage() {
                               name="timeSlot"
                               value={slot}
                               checked={form.timeSlot === slot}
-                              onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
+                              onChange={(e) =>
+                                setForm({ ...form, timeSlot: e.target.value })
+                              }
                               className="hidden"
                             />
-                            🕐 {slot}
+                            {slot}
                           </label>
                         ))}
                       </div>
@@ -265,16 +359,24 @@ export default function CheckoutPage() {
                   {/* Jamia Info Box */}
                   {isJamiaStudent && (
                     <div className="rounded-xl bg-[#17d492]/10 border border-[#17d492]/30 p-4 text-sm">
-                      <p className="font-black text-[#17d492] mb-2">Important Delivery Information</p>
+                      <p className="font-black text-[#17d492] mb-2">
+                        Important Delivery Information
+                      </p>
                       <p className="text-white/70 mb-2">
-                        For urgent orders or assignment work, message us on WhatsApp:{" "}
-                        <span className="font-bold text-[#17d492]">7982670413</span>
+                        For urgent orders, WhatsApp us:{" "}
+                        <span className="font-bold text-[#17d492]">
+                          7982670413
+                        </span>
                       </p>
                       <ul className="text-white/60 space-y-1 text-xs list-disc pl-4">
                         <li>Free delivery Mon–Fri only</li>
                         <li>Include gate number / hostel name in address</li>
-                        <li>You'll receive a confirmation call before delivery</li>
-                        <li>Departments: Gate 1–30 | Hostels: 8–9 PM at main gate</li>
+                        <li>
+                          You'll receive a confirmation call before delivery
+                        </li>
+                        <li>
+                          Departments: Gate 1–30 | Hostels: 8–9 PM at main gate
+                        </li>
                       </ul>
                     </div>
                   )}
@@ -283,7 +385,9 @@ export default function CheckoutPage() {
                     rows={3}
                     placeholder="Complete Address (Gate no. / Hostel name / Department) *"
                     value={form.address}
-                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, address: e.target.value })
+                    }
                     className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition"
                     required
                   />
@@ -292,53 +396,68 @@ export default function CheckoutPage() {
 
               {/* Payment Method */}
               <div className="bg-[#1a2830] rounded-2xl p-6 border border-white/5">
-                <h2 className="text-lg font-black mb-4 text-[#17d492]">Payment Method</h2>
+                <h2 className="text-lg font-black mb-4 text-[#17d492]">
+                  Payment Method
+                </h2>
                 <div className="space-y-3">
-                  {[
-                    { id: "cod", label: "Cash on Delivery", icon: "💵", desc: "Pay when you receive" },
-                    { id: "razorpay", label: "Pay Online (Razorpay)", icon: "💳", desc: "UPI, Cards, Net Banking" },
-                  ].map((method) => (
-                    <label
-                      key={method.id}
-                      className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition ${
-                        paymentMethod === method.id
-                          ? "border-[#17d492] bg-[#17d492]/10"
-                          : "border-white/10 hover:border-white/30"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="payment"
-                        className="hidden"
-                        onChange={() => setPaymentMethod(method.id)}
-                      />
-                      <span className="text-2xl">{method.icon}</span>
-                      <div className="flex-1">
-                        <p className="font-bold text-sm text-white">{method.label}</p>
-                        <p className="text-xs text-slate-500">{method.desc}</p>
-                      </div>
-                      <div
-                        className={`w-4 h-4 rounded-full border-2 transition ${
-                          paymentMethod === method.id ? "border-[#17d492] bg-[#17d492]" : "border-white/30"
-                        }`}
-                      />
-                    </label>
-                  ))}
+                  {/* COD — Disabled */}
+                  <div className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed select-none">
+                    <span className="text-2xl grayscale">💵</span>
+                    <div className="flex-1">
+                      <p className="font-bold text-sm text-slate-500">
+                        Cash on Delivery
+                      </p>
+                      <p className="text-xs text-slate-600">
+                        Currently unavailable
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-slate-700 text-slate-400 px-2 py-1 rounded-lg">
+                      Unavailable
+                    </span>
+                  </div>
+
+                  {/* UPI — Active & always selected */}
+                  <label className="flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition border-[#17d492] bg-[#17d492]/10">
+                    <input
+                      type="radio"
+                      name="payment"
+                      className="hidden"
+                      defaultChecked
+                      onChange={() => setPaymentMethod("upi")}
+                    />
+                    <span className="text-2xl">📲</span>
+                    <div className="flex-1">
+                      <p className="font-bold text-sm text-white">
+                        Pay via UPI / QR
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        GPay, PhonePe, Paytm & all UPI apps
+                      </p>
+                    </div>
+                    <div className="w-4 h-4 rounded-full border-2 border-[#17d492] bg-[#17d492]" />
+                  </label>
                 </div>
               </div>
             </div>
 
             {/* RIGHT - Order Summary */}
             <div className="bg-[#1a2830] rounded-2xl p-6 h-fit sticky top-28 border border-white/5">
-              <h2 className="text-lg font-black mb-4 text-[#17d492]">Order Summary</h2>
+              <h2 className="text-lg font-black mb-4 text-[#17d492]">
+                Order Summary
+              </h2>
 
               <div className="space-y-2 mb-4">
                 {cart.map((item) => (
-                  <div key={`${item.title}-${item.quantity}`} className="flex justify-between text-sm">
+                  <div
+                    key={`${item.title}-${item.quantity}`}
+                    className="flex justify-between text-sm"
+                  >
                     <span className="text-white/70">
                       {item.title} × {item.quantity}
                     </span>
-                    <span className="text-white">₹{item.price * item.quantity}</span>
+                    <span className="text-white">
+                      ₹{item.price * item.quantity}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -373,16 +492,11 @@ export default function CheckoutPage() {
                     : "bg-[#17d492] hover:bg-[#14b87e] hover:-translate-y-0.5 active:scale-95 shadow-[0_10px_20px_-10px_rgba(23,212,146,0.4)]"
                 }`}
               >
-                {loading
-                  ? "Processing..."
-                  : paymentMethod === "cod"
-                  ? "Confirm Order (COD)"
-                  : "Pay Now"}
+                {loading ? "Processing..." : "Proceed to Pay"}
               </button>
 
               <p className="text-xs text-center mt-3 text-slate-600">
-                Secure Checkout •{" "}
-                {paymentMethod === "cod" ? "Cash on Delivery" : "Powered by Razorpay"}
+                Secure Checkout • UPI Payment
               </p>
             </div>
           </div>
