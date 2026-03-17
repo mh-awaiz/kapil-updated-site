@@ -72,7 +72,7 @@ export default function GroceriesPreview() {
         <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#17d492]/10 border border-[#17d492]/20 text-[#17d492] text-xs font-bold tracking-widest uppercase mb-4">
             <FaShoppingBasket size={12} />
-            New Section
+            Groceries Section
           </div>
           <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">
             Groceries & <span className="text-[#17d492]">Essentials</span>

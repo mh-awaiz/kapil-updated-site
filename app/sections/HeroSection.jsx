@@ -4,9 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 const words = [
-  "Lowest Prices Guaranteed.",
-  "Free Delivery for Jamia Students.",
-  "Cash on Delivery Available.",
+  "Mini Amazon + Blinkit + Zomato for Students",
+  "Open Everyday – 8 AM to 12 AM",
+  "Fast Delivery Within 45–90 Minutes",
 ];
 
 const Hero = () => {
@@ -36,10 +36,9 @@ const Hero = () => {
     <section className="relative overflow-hidden bg-[#22323c] text-[#f5f5f5] min-h-[85vh] flex items-center">
       {/* Visual Accent: Subtle background glow */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#17d492]/10 blur-[120px] rounded-full -mr-64 -mt-64"></div>
-      
+
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-16">
         <div className="flex flex-col-reverse md:flex-row items-center gap-12 lg:gap-20 py-15">
-          
           {/* Image Container with Floating Animation */}
           <div className="w-full md:w-1/2 flex justify-center animate-in fade-in zoom-in duration-700">
             <div className="relative group">
@@ -61,12 +60,17 @@ const Hero = () => {
             <div className="inline-block px-3 py-1 rounded-full bg-[#17d492]/10 border border-[#17d492]/20 text-[#17d492] text-xs font-bold tracking-widest uppercase mb-6">
               Official Hub
             </div>
-            
+
             <h1 className="text-4xl md:text-6xl font-black leading-[1.1] tracking-tight">
-              ASSIGNMENT WORK & <br /> 
-              <span className="text-[#17d492]">STATIONERY HUB</span>
+              The Official Superstore <br />
+              <span className="text-[#17d492]">for Students</span>
             </h1>
-            
+
+            <p className="mt-2 text-sm md:text-[18px] font-medium text-slate-300">
+              Food • Grocery • Assignments • PYQs • Stationery • Cosmetics •
+              etc.
+            </p>
+
             <p className="mt-2 text-xl md:text-2xl font-medium text-slate-300">
               by Kapil Gupta
             </p>
@@ -79,21 +83,24 @@ const Hero = () => {
             </div>
 
             {/* Static Features with Icons */}
-            <div className="mt-8 grid grid-cols-1 gap-3">
+            {/* <div className="mt-8 grid grid-cols-1 gap-3">
               {[
                 "Lowest price in the market",
                 "Free delivery for Jamia students",
                 "Hassle-free Cash on Delivery",
                 "Mon-Fri Delivery (Working Days Only)",
                 "For Urgent Delivery Message Me",
-                "For Assignment Work or Drawing Work, feel free to message us for any doubts"
+                "For Assignment Work or Drawing Work, feel free to message us for any doubts",
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 justify-center md:justify-start text-slate-400">
+                <div
+                  key={i}
+                  className="flex items-center gap-2 justify-center md:justify-start text-slate-400"
+                >
                   <div className="h-1.5 w-1.5 rounded-full bg-[#17d492]" />
                   <span>{item}</span>
                 </div>
               ))}
-            </div>
+            </div> */}
 
             {/* CTA Buttons */}
             <div className="mt-10 flex flex-col sm:flex-row justify-center md:justify-start gap-4">
@@ -109,21 +116,27 @@ const Hero = () => {
               </Link>
             </div>
           </div>
-          
         </div>
       </div>
 
       {/* Add this to your globals.css or a style tag */}
       <style jsx>{`
         @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-15px); }
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-15px);
+          }
         }
         .animate-bounce-slow {
           animation: bounce-slow 4s ease-in-out infinite;
         }
         @keyframes caret {
-          50% { border-color: transparent; }
+          50% {
+            border-color: transparent;
+          }
         }
         .animate-caret {
           animation: caret 0.8s step-end infinite;

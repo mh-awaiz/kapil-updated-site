@@ -100,7 +100,6 @@ const Navbar = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#17d492] transition-all duration-300 group-hover:w-full" />
               </Link>
             ))}
-
             {/* Groceries Dropdown */}
             <div className="relative group">
               <button className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-slate-300 hover:text-[#17d492] transition-colors">

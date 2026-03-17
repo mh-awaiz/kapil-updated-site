@@ -4,7 +4,7 @@ import { useCart } from "../context/CartContext.js";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { FaTimes, FaCheckCircle } from "react-icons/fa";
+import { FaTimes, FaCheckCircle, FaWhatsapp, FaClock, FaPhoneAlt, FaMapMarkerAlt, FaBolt, FaCalendarCheck } from "react-icons/fa";
 import { MdQrCode2 } from "react-icons/md";
 
 export default function CheckoutPage() {
@@ -16,23 +16,21 @@ export default function CheckoutPage() {
     name: session?.user?.name || "",
     phone: session?.user?.phone || "",
     email: session?.user?.email || "",
-    address: session?.user?.address || "",
-    timeSlot: "",
+    address: "",
   });
   const [isJamiaStudent, setIsJamiaStudent] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState("upi"); // default to upi since cod is disabled
+  const [paymentMethod, setPaymentMethod] = useState("upi");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState("");
 
-  // UPI QR modal states
   const [showQR, setShowQR] = useState(false);
   const [utrNumber, setUtrNumber] = useState("");
   const [utrError, setUtrError] = useState("");
 
-  const deliveryCharge = isJamiaStudent === false ? 30 : 0;
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const grandTotal = total + deliveryCharge;
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const deliveryCharge = Math.round(subtotal * 0.10); // 10% delivery charge for all
+  const grandTotal = subtotal + deliveryCharge;
 
   const validateForm = () => {
     if (!form.name || !form.phone || !form.address) {
@@ -41,10 +39,6 @@ export default function CheckoutPage() {
     }
     if (isJamiaStudent === null) {
       alert("Please confirm if you are a Jamia student");
-      return false;
-    }
-    if (isJamiaStudent && !form.timeSlot) {
-      alert("Please select a delivery time slot");
       return false;
     }
     return true;
@@ -94,14 +88,10 @@ export default function CheckoutPage() {
       setPlacedOrderId(data.orderId);
       setSuccess(true);
       clearCart();
-      setForm({ name: "", phone: "", email: "", address: "", timeSlot: "" });
+      setForm({ name: "", phone: "", email: "", address: "" });
     } else {
       alert(data.message || "Order failed. Please try again.");
     }
-  };
-
-  const handleSubmit = () => {
-    handleUPIClick();
   };
 
   // ── Success Screen ──────────────────────────────────────────────
@@ -110,19 +100,14 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-[#22323c] text-[#f5f5f5] flex items-center justify-center px-4 pt-24">
         <div className="text-center max-w-sm">
           <FaCheckCircle size={64} className="text-[#17d492] mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-[#17d492] mb-2">
-            Order Placed!
-          </h2>
+          <h2 className="text-2xl font-black text-[#17d492] mb-2">Order Placed!</h2>
           <p className="text-white/70 mb-1">
-            Order ID:{" "}
-            <span className="font-mono text-white">{placedOrderId}</span>
+            Order ID: <span className="font-mono text-white">{placedOrderId}</span>
           </p>
           <p className="text-yellow-400 text-sm mb-2 font-semibold">
             Payment will be verified within 30 minutes.
           </p>
-          <p className="text-white/50 text-sm mb-8">
-            We'll contact you soon to confirm.
-          </p>
+          <p className="text-white/50 text-sm mb-8">We'll contact you soon to confirm.</p>
           <div className="flex flex-col gap-3">
             <a
               href={`/track/${placedOrderId}`}
@@ -147,11 +132,7 @@ export default function CheckoutPage() {
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
       <div className="bg-[#1a2830] border border-[#17d492]/30 rounded-2xl w-full max-w-sm p-6 relative shadow-2xl">
         <button
-          onClick={() => {
-            setShowQR(false);
-            setUtrNumber("");
-            setUtrError("");
-          }}
+          onClick={() => { setShowQR(false); setUtrNumber(""); setUtrError(""); }}
           className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
         >
           <FaTimes size={18} />
@@ -161,16 +142,12 @@ export default function CheckoutPage() {
           <MdQrCode2 size={28} className="text-[#17d492]" />
           <div>
             <h3 className="font-black text-white text-lg">Pay via UPI</h3>
-            <p className="text-slate-400 text-xs">
-              Scan the QR code below to pay
-            </p>
+            <p className="text-slate-400 text-xs">Scan the QR code below to pay</p>
           </div>
         </div>
 
         <div className="bg-[#17d492]/10 border border-[#17d492]/20 rounded-xl px-4 py-3 mb-5 text-center">
-          <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">
-            Amount to Pay
-          </p>
+          <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">Amount to Pay</p>
           <p className="text-3xl font-black text-[#17d492]">₹{grandTotal}</p>
         </div>
 
@@ -200,9 +177,7 @@ export default function CheckoutPage() {
           </p>
           <div className="mt-3 w-full bg-[#22323c] border border-white/10 rounded-xl px-4 py-2.5 text-center">
             <p className="text-xs text-slate-500 mb-1">Or pay to UPI ID</p>
-            <p className="text-sm font-black text-white tracking-wide">
-              7982670413@sbi
-            </p>
+            <p className="text-sm font-black text-white tracking-wide">7982670413@sbi</p>
           </div>
         </div>
 
@@ -214,16 +189,12 @@ export default function CheckoutPage() {
             type="text"
             placeholder="e.g. 423456789012"
             value={utrNumber}
-            onChange={(e) => {
-              setUtrNumber(e.target.value);
-              setUtrError("");
-            }}
+            onChange={(e) => { setUtrNumber(e.target.value); setUtrError(""); }}
             className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition text-white text-sm"
           />
           {utrError && <p className="text-red-400 text-xs mt-1">{utrError}</p>}
           <p className="text-slate-600 text-xs mt-1">
-            Find this in your UPI app after payment — it's the 12-digit
-            reference number.
+            Find this in your UPI app after payment — it's the 12-digit reference number.
           </p>
         </div>
 
@@ -255,9 +226,7 @@ export default function CheckoutPage() {
             {/* LEFT - Delivery Details */}
             <div className="space-y-6">
               <div className="bg-[#1a2830] rounded-2xl p-6 border border-white/5">
-                <h2 className="text-lg font-black mb-4 text-[#17d492]">
-                  Delivery Details
-                </h2>
+                <h2 className="text-lg font-black mb-4 text-[#17d492]">Delivery Details</h2>
                 <div className="space-y-3">
                   <input
                     type="text"
@@ -271,36 +240,29 @@ export default function CheckoutPage() {
                     type="tel"
                     placeholder="Phone Number *"
                     value={form.phone}
-                    onChange={(e) =>
-                      setForm({ ...form, phone: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition"
                     required
                   />
                   <input
                     type="email"
-                    placeholder="Email *"
+                    placeholder="Email"
                     value={form.email}
-                    onChange={(e) =>
-                      setForm({ ...form, email: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition"
-                    required
                   />
 
                   {/* Jamia Student */}
                   <div>
-                    <p className="mb-2 font-bold text-[#17d492] text-sm">
-                      Are you a Jamia student? *
-                    </p>
+                    <p className="mb-2 font-bold text-[#17d492] text-sm">Are you a Jamia student? *</p>
                     <div className="flex gap-3">
                       {[
-                        { val: true, label: "Yes (Free Delivery)" },
-                        { val: false, label: "No (₹30 charge)" },
+                        { val: true, label: "Yes" },
+                        { val: false, label: "No" },
                       ].map((opt) => (
                         <label
                           key={String(opt.val)}
-                          className={`flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition text-sm font-bold ${
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition text-sm font-bold ${
                             isJamiaStudent === opt.val
                               ? "border-[#17d492] bg-[#17d492]/10 text-[#17d492]"
                               : "border-white/10 text-slate-400 hover:border-white/30"
@@ -318,105 +280,73 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Time Slot for Jamia Students */}
-                  {isJamiaStudent && (
-                    <div>
-                      <p className="mb-2 font-bold text-[#17d492] text-sm">
-                        Select Delivery Time Slot *
-                      </p>
-                      <div className="flex flex-col gap-2">
-                        {[
-                          "Morning: 8:45 AM – 9:15 AM",
-                          "Afternoon: 1:00 PM – 2:00 PM",
-                          "Evening: 5:00 PM – 6:00 PM",
-                          "Hostel: 8:00 PM – 9:00 PM",
-                        ].map((slot) => (
-                          <label
-                            key={slot}
-                            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border cursor-pointer transition text-sm ${
-                              form.timeSlot === slot
-                                ? "border-[#17d492] bg-[#17d492]/10 text-[#17d492] font-bold"
-                                : "border-white/10 text-slate-400 hover:border-white/30"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="timeSlot"
-                              value={slot}
-                              checked={form.timeSlot === slot}
-                              onChange={(e) =>
-                                setForm({ ...form, timeSlot: e.target.value })
-                              }
-                              className="hidden"
-                            />
-                            {slot}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Jamia Info Box */}
-                  {isJamiaStudent && (
-                    <div className="rounded-xl bg-[#17d492]/10 border border-[#17d492]/30 p-4 text-sm">
-                      <p className="font-black text-[#17d492] mb-2">
-                        Important Delivery Information
-                      </p>
-                      <p className="text-white/70 mb-2">
-                        For urgent orders, WhatsApp us:{" "}
-                        <span className="font-bold text-[#17d492]">
-                          7982670413
-                        </span>
-                      </p>
-                      <ul className="text-white/60 space-y-1 text-xs list-disc pl-4">
-                        <li>Free delivery Mon–Fri only</li>
-                        <li>Include gate number / hostel name in address</li>
-                        <li>
-                          You'll receive a confirmation call before delivery
-                        </li>
-                        <li>
-                          Departments: Gate 1–30 | Hostels: 8–9 PM at main gate
-                        </li>
-                      </ul>
-                    </div>
-                  )}
-
                   <textarea
                     rows={3}
-                    placeholder="Complete Address (Gate no. / Hostel name / Department) *"
+                    placeholder="Complete Address (Building / Area / Landmark) *"
                     value={form.address}
-                    onChange={(e) =>
-                      setForm({ ...form, address: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition"
                     required
                   />
                 </div>
               </div>
 
+              {/* Important Delivery Information */}
+              <div className="bg-[#1a2830] rounded-2xl p-6 border border-[#17d492]/20">
+                <h2 className="text-lg font-black mb-4 text-[#17d492]">
+                  Important Delivery Information
+                </h2>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3 text-sm text-white/70">
+                    <FaCalendarCheck className="text-[#17d492] mt-0.5 shrink-0" size={15} />
+                    <span>Delivery available everyday — <span className="text-white font-semibold">8:00 AM to 12:00 AM</span></span>
+                  </li>
+                  <li className="flex items-start gap-3 text-sm text-white/70">
+                    <FaBolt className="text-[#17d492] mt-0.5 shrink-0" size={15} />
+                    <span>Your order will be delivered within <span className="text-white font-semibold">45–90 minutes</span></span>
+                  </li>
+                  <li className="flex items-start gap-3 text-sm text-white/70">
+                    <FaPhoneAlt className="text-[#17d492] mt-0.5 shrink-0" size={15} />
+                    <span>You will receive a <span className="text-white font-semibold">confirmation mail</span> before delivery</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-sm text-white/70">
+                    <FaMapMarkerAlt className="text-[#17d492] mt-0.5 shrink-0" size={15} />
+                    <span>Please mention your <span className="text-white font-semibold">exact location</span> while placing the order</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-sm text-white/70">
+                    <FaWhatsapp className="text-[#17d492] mt-0.5 shrink-0" size={15} />
+                    <span>
+                      For urgent orders, WhatsApp us:{" "}
+                      <a
+                        href="https://wa.me/917982670413"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#17d492] font-black hover:underline"
+                      >
+                        7982670413
+                      </a>
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
               {/* Payment Method */}
               <div className="bg-[#1a2830] rounded-2xl p-6 border border-white/5">
-                <h2 className="text-lg font-black mb-4 text-[#17d492]">
-                  Payment Method
-                </h2>
+                <h2 className="text-lg font-black mb-4 text-[#17d492]">Payment Method</h2>
                 <div className="space-y-3">
                   {/* COD — Disabled */}
                   <div className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed select-none">
-                    <span className="text-2xl grayscale">💵</span>
+                    <FaTimes className="text-slate-500 shrink-0" size={20} />
                     <div className="flex-1">
-                      <p className="font-bold text-sm text-slate-500">
-                        Cash on Delivery
-                      </p>
-                      <p className="text-xs text-slate-600">
-                        Currently unavailable
-                      </p>
+                      <p className="font-bold text-sm text-slate-500">Cash on Delivery</p>
+                      <p className="text-xs text-slate-600">Currently unavailable</p>
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-widest bg-slate-700 text-slate-400 px-2 py-1 rounded-lg">
                       Unavailable
                     </span>
                   </div>
 
-                  {/* UPI — Active & always selected */}
+                  {/* UPI — Active */}
                   <label className="flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition border-[#17d492] bg-[#17d492]/10">
                     <input
                       type="radio"
@@ -425,16 +355,12 @@ export default function CheckoutPage() {
                       defaultChecked
                       onChange={() => setPaymentMethod("upi")}
                     />
-                    <span className="text-2xl">📲</span>
+                    <MdQrCode2 size={24} className="text-[#17d492] shrink-0" />
                     <div className="flex-1">
-                      <p className="font-bold text-sm text-white">
-                        Pay via UPI / QR
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        GPay, PhonePe, Paytm & all UPI apps
-                      </p>
+                      <p className="font-bold text-sm text-white">Pay via UPI / QR</p>
+                      <p className="text-xs text-slate-500">GPay, PhonePe, Paytm & all UPI apps</p>
                     </div>
-                    <div className="w-4 h-4 rounded-full border-2 border-[#17d492] bg-[#17d492]" />
+                    <div className="w-4 h-4 rounded-full border-2 border-[#17d492] bg-[#17d492] shrink-0" />
                   </label>
                 </div>
               </div>
@@ -442,22 +368,13 @@ export default function CheckoutPage() {
 
             {/* RIGHT - Order Summary */}
             <div className="bg-[#1a2830] rounded-2xl p-6 h-fit sticky top-28 border border-white/5">
-              <h2 className="text-lg font-black mb-4 text-[#17d492]">
-                Order Summary
-              </h2>
+              <h2 className="text-lg font-black mb-4 text-[#17d492]">Order Summary</h2>
 
               <div className="space-y-2 mb-4">
                 {cart.map((item) => (
-                  <div
-                    key={`${item.title}-${item.quantity}`}
-                    className="flex justify-between text-sm"
-                  >
-                    <span className="text-white/70">
-                      {item.title} × {item.quantity}
-                    </span>
-                    <span className="text-white">
-                      ₹{item.price * item.quantity}
-                    </span>
+                  <div key={`${item.title}-${item.quantity}`} className="flex justify-between text-sm">
+                    <span className="text-white/70">{item.title} × {item.quantity}</span>
+                    <span className="text-white">₹{item.price * item.quantity}</span>
                   </div>
                 ))}
               </div>
@@ -465,17 +382,13 @@ export default function CheckoutPage() {
               <div className="border-t border-white/10 pt-4 space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Subtotal</span>
-                  <span>₹{total}</span>
+                  <span>₹{subtotal}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Delivery</span>
-                  <span>
-                    {deliveryCharge === 0 ? (
-                      <span className="text-[#17d492] font-bold">FREE</span>
-                    ) : (
-                      `₹${deliveryCharge}`
-                    )}
+                  <span className="text-slate-400 flex items-center gap-1">
+                    Delivery <span className="text-xs text-slate-600">(10%)</span>
                   </span>
+                  <span>₹{deliveryCharge}</span>
                 </div>
                 <div className="flex justify-between font-black text-lg pt-2 border-t border-white/10">
                   <span>Total</span>
@@ -483,10 +396,18 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              {/* Delivery timing reminder */}
+              <div className="mt-4 flex items-center gap-2 bg-[#17d492]/5 border border-[#17d492]/15 rounded-xl px-4 py-3">
+                <FaClock size={13} className="text-[#17d492] shrink-0" />
+                <p className="text-xs text-slate-400">
+                  Delivered in <span className="text-white font-bold">45–90 mins</span> · Available 8 AM – 12 AM
+                </p>
+              </div>
+
               <button
-                onClick={handleSubmit}
+                onClick={handleUPIClick}
                 disabled={loading || cart.length === 0}
-                className={`w-full mt-6 py-4 rounded-xl font-black transition text-[#22323c] ${
+                className={`w-full mt-5 py-4 rounded-xl font-black transition text-[#22323c] ${
                   loading
                     ? "bg-[#17d492]/50 cursor-not-allowed"
                     : "bg-[#17d492] hover:bg-[#14b87e] hover:-translate-y-0.5 active:scale-95 shadow-[0_10px_20px_-10px_rgba(23,212,146,0.4)]"

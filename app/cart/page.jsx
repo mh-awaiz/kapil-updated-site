@@ -98,7 +98,7 @@ export default function CartPage() {
               className="w-full bg-[#17d492] text-[#22323c] py-3 rounded-lg 
               font-semibold hover:opacity-90 transition cursor-pointer"
             >
-              Proceed to Checkout (COD)
+              Proceed to Checkout
             </button>
 
             <p className="text-xs text-center mt-3 text-[#f5f5f5]/70">
