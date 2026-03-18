@@ -59,9 +59,10 @@ const Navbar = () => {
 
   const navLinks = [
     { name: "Home", href: "/" },
-    { name: "Stationery", href: "/#products" },
     { name: "About", href: "/#aboutme" },
     { name: "Contact", href: "/contact" },
+    { name: "Stationery", href: "/#products" },
+    { name: "PYQs", href: "/pyqs" },
   ];
 
   return (

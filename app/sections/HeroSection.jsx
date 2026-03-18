@@ -76,8 +76,8 @@ const Hero = () => {
             </p>
 
             {/* Typewriter - Set a min-height to prevent layout shift */}
-            <div className="mt-6 h-10 flex items-center justify-center md:justify-start">
-              <p className="text-lg md:text-xl font-mono text-[#17d492] border-r-2 border-[#17d492] pr-1 animate-caret">
+            <div className="md:mt-6 h-10 flex items-center justify-center md:justify-start">
+              <p className="text-md md:text-xl font-mono text-[#17d492] border-r-2 border-[#17d492] pr-1 animate-caret">
                 {text}
               </p>
             </div>

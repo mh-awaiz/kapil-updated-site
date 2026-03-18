@@ -2,6 +2,7 @@ import HeroSection from "./sections/HeroSection";
 import AboutSection from "./sections/AboutSection";
 import ProductSearch from "./sections/ProductSearch";
 import GroceriesPreview from "./sections/GroceriesPreview";
+import PYQSection from "./sections/Pyqsection";
 
 export default function Home() {
   return (
@@ -9,6 +10,7 @@ export default function Home() {
       <HeroSection />
       <ProductSearch />
       <GroceriesPreview />
+      <PYQSection />
       <AboutSection />
     </main>
   );
