@@ -22,13 +22,13 @@ export const CartProvider = ({ children }) => {
   const addToCart = (product) => {
     setCart((prev) => {
       const existingItem = prev.find(
-        (item) => item.id === product.id
+        (item) => item._id === product._id
       );
 
       if (existingItem) {
         // Increase quantity of existing item
         return prev.map((item) =>
-          item.id === product.id
+          item._id === product._id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
