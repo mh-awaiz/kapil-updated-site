@@ -25,17 +25,6 @@ export async function POST(req) {
       });
     }
 
-    if (
-      customer?.isJamiaStudent &&
-      !customer?.timeSlot &&
-      paymentMethod !== "razorpay"
-    ) {
-      return new Response(
-        JSON.stringify({ message: "Time slot is required for Jamia students" }),
-        { status: 400 },
-      );
-    }
-
     const orderId = "ORD-" + Date.now();
 
     const hasGrocery = cart.some((item) => item.category === "groceries");
@@ -113,7 +102,6 @@ Phone: ${customer.phone}
 Email: ${customer.email}
 Address: ${customer.address}
 Jamia Student: ${customer.isJamiaStudent ? "Yes" : "No"}
-Time Slot: ${customer.timeSlot || "N/A"}
 
 Items:
 ${itemsList}
@@ -184,15 +172,6 @@ Timestamp: ${new Date().toLocaleString()}
                       <td style="padding:12px 0 0;font-size:16px;font-weight:900;color:#17d492;text-align:right;border-top:1px solid #ffffff20;">₹${total}</td>
                     </tr>
                   </table>
-
-                  ${
-                    customer.isJamiaStudent && customer.timeSlot
-                      ? `<div style="background:#17d49215;border:1px solid #17d49240;border-radius:8px;padding:12px 16px;margin:20px 0;font-size:13px;">
-                           <p style="margin:0 0 4px;font-weight:900;color:#17d492;">📅 Delivery Slot</p>
-                           <p style="margin:0;color:#f5f5f5cc;">${customer.timeSlot}</p>
-                         </div>`
-                      : ""
-                  }
 
                   <!-- Track Button -->
                   <a href="https://kapilstore.in/track/${orderId}"
