@@ -1,193 +1,223 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  FaShoppingCart,
-  FaBars,
-  FaTimes,
-  FaChevronDown,
-  FaUser,
+  FaShoppingCart, FaBars, FaTimes, FaChevronDown, FaUser,
+  FaShoppingBasket, FaUtensils, FaGlassWhiskey, FaPencilAlt,
+  FaFileAlt, FaChalkboardTeacher, FaHome, FaEllipsisH,
 } from "react-icons/fa";
-import { MdCookie, MdSpa, MdHome, MdOutdoorGrill } from "react-icons/md";
-import { GiChickenLeg } from "react-icons/gi";
 import Image from "next/image";
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useCart } from "../context/CartContext";
 
-const groceryLinks = [
+// ── Top-level nav items ──────────────────────────────────────────
+const TOP_NAV = [
+  { id: "grocery",    label: "Grocery",             emoji: "🛒", href: "/grocery" },
+  { id: "food",       label: "Food",                emoji: "🍔", href: "/food" },
+  { id: "juices",     label: "Juices & Shakes",     emoji: "🥤", href: "/juices-shakes" },
+  { id: "stationery", label: "Stationery",          emoji: "✏️", href: "/stationery" },
+  { id: "assignment", label: "Assignment Services", emoji: "📝", href: "/others#assignment" },
+  { id: "tuition",    label: "Tuition Services",    emoji: "🎓", href: "/others#tuition" },
+  { id: "earn-rent",  label: "Earn & Rent Hub",     emoji: "🏠", href: "/others#earn-rent" },
+  { id: "others",     label: "Others",              emoji: "⚡", href: "/others" },
+];
+
+// ── Stationery subcategories (shown in dropdown) ─────────────────
+const STATIONERY_SUBS = [
+  { label: "Books & Notebooks",           href: "/stationery/books-notebooks" },
+  { label: "Calculators",                  href: "/stationery/calculators" },
+  { label: "Drawing Materials",            href: "/stationery/drawing-materials" },
+  { label: "Pens (All Types)",             href: "/stationery/pens" },
+  { label: "Files & Folders",              href: "/stationery/files-folders" },
+  { label: "BTech & Polytechnic",         href: "/stationery/btech-polytechnic" },
+  { label: "Xerox / Printout",             href: "/stationery/xerox-printout" },
+  { label: "Jamia School Material",        href: "/stationery/jamia-school" },
+  { label: "Other Stationery",             href: "/stationery/other-stationery" },
+];
+
+// ── Others mega-dropdown sections ───────────────────────────────
+const OTHERS_SECTIONS = [
   {
-    label: "Snacks & Drinks",
-    href: "/groceries/snacks-drinks",
-    icon: <MdCookie size={16} />,
+    title: "📝 Assignment Services",
+    links: [
+      { label: "IGNOU Assignment Work",       href: "/others#ignou-assignment" },
+      { label: "Handwritten Assignments",      href: "/others#handwritten" },
+      { label: "Typed Assignments",            href: "/others#typed" },
+      { label: "Project Work",                 href: "/others#project-work" },
+      { label: "PPT Making",                   href: "/others#ppt" },
+      { label: "Engineering Drawing",          href: "/others#engineering-drawing" },
+      { label: "Thesis Help",                  href: "/others#thesis" },
+    ],
   },
   {
-    label: "Beauty & Personal Care",
-    href: "/groceries/beauty-personal-care",
-    icon: <MdSpa size={16} />,
+    title: "🏠 Earn & Rent Hub",
+    links: [
+      { label: "PG / Rooms on Rent",           href: "/others#pg-rooms" },
+      { label: "Calculators on Rent",          href: "/others#calculators-rent" },
+      { label: "Electronics on Rent",          href: "/others#electronics-rent" },
+      { label: "Room Essentials on Rent",      href: "/others#room-essentials" },
+      { label: "Daily Use Items on Rent",      href: "/others#daily-items-rent" },
+    ],
   },
   {
-    label: "Home & Lifestyle",
-    href: "/groceries/home-lifestyle",
-    icon: <MdHome size={16} />,
+    title: "🎓 Tuition Services",
+    links: [
+      { label: "School Tuition",               href: "/others#school-tuition" },
+      { label: "College Tuition",              href: "/others#college-tuition" },
+      { label: "Home Tuition",                 href: "/others#home-tuition" },
+      { label: "Entrance Exam Prep",           href: "/others#entrance-exam" },
+      { label: "IGNOU Help",                   href: "/others#ignou-help" },
+    ],
   },
   {
-    label: "Food – Veg",
-    href: "/groceries/food-veg",
-    icon: <MdOutdoorGrill size={16} />,
-  },
-  {
-    label: "Food – Non Veg",
-    href: "/groceries/food-nonveg",
-    icon: <GiChickenLeg size={16} />,
+    title: "⚡ Only For Students",
+    links: [
+      { label: "Clothes Ironing",              href: "/others#ironing" },
+      { label: "Laundry Service",              href: "/others#laundry" },
+      { label: "Resume / CV Making",           href: "/others#resume" },
+      { label: "Laptop / Mobile Repair",       href: "/others#laptop-repair" },
+      { label: "Printout / Scan",              href: "/others#printout-scan" },
+      { label: "Shoes & Bags",                 href: "/others#shoes-bags" },
+      { label: "Chemist & Cosmetics",          href: "/others#chemist" },
+      { label: "PYQs",                         href: "/pyqs" },
+    ],
   },
 ];
 
-const Navbar = () => {
-  const [open, setOpen] = useState(false);
+export default function Navbar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
-  const [groceryOpen, setGroceryOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null); // "stationery" | "others" | null
+  const [mobileExpanded, setMobileExpanded] = useState(null);
+  const dropdownRef = useRef(null);
   const { data: session } = useSession();
   const { cart } = useCart();
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const navLinks = [
-    { name: "Home", href: "/" },
-    { name: "About", href: "/#aboutme" },
-    { name: "Contact", href: "/contact" },
-    { name: "Stationery", href: "/#products" },
-    { name: "PYQs", href: "/pyqs" },
-  ];
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setActiveDropdown(null);
+        setUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const toggleDropdown = (id) =>
+    setActiveDropdown((prev) => (prev === id ? null : id));
 
   return (
     <nav
       className={`fixed w-full top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-[#22323c]/80 backdrop-blur-md py-2 shadow-lg"
-          : "bg-[#22323c] py-4"
+          ? "bg-[#22323c]/90 backdrop-blur-xl shadow-xl py-2"
+          : "bg-[#22323c] py-3"
       }`}
+      ref={dropdownRef}
     >
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#17d492] blur-md opacity-0 group-hover:opacity-9 transition-opacity"></div>
-              <Image
-                src="/logonav.png"
-                alt="Kapil Store Logo"
-                width={100}
-                height={100}
-                className="relative h-12 w-auto transition-transform duration-300 group-hover:scale-110"
-              />
-            </div>
+      <div className="max-w-7xl mx-auto px-4 md:px-6">
+        <div className="flex items-center justify-between gap-4">
+          {/* ── Logo ── */}
+          <Link href="/" className="shrink-0">
+            <Image
+              src="/logonav.png"
+              alt="Kapil Store"
+              width={100}
+              height={40}
+              className="h-11 w-auto"
+            />
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                className="relative text-sm font-bold uppercase tracking-widest text-slate-300 hover:text-[#17d492] transition-colors group"
-              >
-                {link.name}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#17d492] transition-all duration-300 group-hover:w-full" />
-              </Link>
-            ))}
-            {/* Groceries Dropdown */}
-            <div className="relative group">
-              <button className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-widest text-slate-300 hover:text-[#17d492] transition-colors">
-                Groceries
-                <FaChevronDown className="text-xs transition-transform duration-300 group-hover:rotate-180" />
-              </button>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-56 bg-[#1a2830] border border-[#17d492]/20 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
-                {groceryLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:text-[#17d492] hover:bg-[#17d492]/10 transition"
+          {/* ── Desktop Nav ── */}
+          <div className="hidden lg:flex items-center gap-1 flex-1 justify-center flex-wrap">
+            {TOP_NAV.map((item) => {
+              const hasDropdown = item.id === "stationery" || item.id === "others";
+              const isActive = activeDropdown === item.id;
+
+              if (hasDropdown) {
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => toggleDropdown(item.id)}
+                    className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                      isActive
+                        ? "bg-[#17d492]/15 text-[#17d492]"
+                        : "text-slate-300 hover:text-[#17d492] hover:bg-white/5"
+                    }`}
                   >
-                    <span className="text-[#17d492]">{link.icon}</span>
-                    {link.label}
-                  </Link>
-                ))}
+                    <span>{item.emoji}</span>
+                    <span>{item.label}</span>
+                    <FaChevronDown
+                      size={9}
+                      className={`transition-transform duration-200 ${isActive ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                );
+              }
+
+              return (
                 <Link
-                  href="/groceries"
-                  className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-[#17d492] border-t border-[#17d492]/20 hover:bg-[#17d492]/10 transition"
+                  key={item.id}
+                  href={item.href}
+                  className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider text-slate-300 hover:text-[#17d492] hover:bg-white/5 transition-all"
                 >
-                  All Groceries →
+                  <span>{item.emoji}</span>
+                  <span>{item.label}</span>
                 </Link>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
-          {/* Right Icons */}
-          <div className="flex items-center gap-5">
+          {/* ── Right icons ── */}
+          <div className="flex items-center gap-3 shrink-0">
             {/* Cart */}
-            <Link
-              href="/cart"
-              className="group relative p-2 text-white hover:text-[#17d492] transition-colors"
-            >
-              <FaShoppingCart
-                size={22}
-                className="group-hover:rotate-12 transition-transform"
-              />
+            <Link href="/cart" className="relative p-2 text-white hover:text-[#17d492] transition">
+              <FaShoppingCart size={20} />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[#17d492] text-[#22323c] text-xs font-black flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[#17d492] text-[#22323c] text-xs font-black flex items-center justify-center leading-none">
                   {cartCount}
                 </span>
               )}
             </Link>
 
-            {/* Auth */}
+            {/* Auth — desktop */}
             {session ? (
-              <div className="relative hidden md:block">
+              <div className="relative hidden lg:block">
                 <button
                   onClick={() => setUserMenu(!userMenu)}
                   className="flex items-center gap-2 text-slate-300 hover:text-[#17d492] transition"
                 >
                   {session.user?.image ? (
-                    <img
-                      src={session.user.image}
-                      alt=""
-                      className="w-8 h-8 rounded-full border-2 border-[#17d492]"
-                    />
+                    <img src={session.user.image} alt="" className="w-8 h-8 rounded-full border-2 border-[#17d492]" />
                   ) : (
-                    <FaUser size={18} />
+                    <div className="w-8 h-8 rounded-full bg-[#17d492]/20 border-2 border-[#17d492] flex items-center justify-center">
+                      <FaUser size={12} className="text-[#17d492]" />
+                    </div>
                   )}
-                  <FaChevronDown className="text-xs" />
+                  <FaChevronDown size={10} className={`transition-transform ${userMenu ? "rotate-180" : ""}`} />
                 </button>
                 {userMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-[#1a2830] border border-[#17d492]/20 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-[#17d492]/10">
-                      <p className="text-sm font-bold text-white truncate">
-                        {session.user?.name}
-                      </p>
-                      <p className="text-xs text-slate-500 truncate">
-                        {session.user?.email}
-                      </p>
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-[#1a2830] border border-[#17d492]/20 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-white/5">
+                      <p className="text-sm font-black text-white truncate">{session.user?.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{session.user?.email}</p>
                     </div>
-                    <Link
-                      href="/profile"
-                      onClick={() => setUserMenu(false)}
-                      className="block px-4 py-2.5 text-sm text-slate-300 hover:text-[#17d492] hover:bg-[#17d492]/10 transition"
-                    >
+                    <Link href="/profile" onClick={() => setUserMenu(false)}
+                      className="block px-4 py-3 text-sm text-slate-300 hover:text-[#17d492] hover:bg-[#17d492]/5 transition">
                       My Orders
                     </Link>
-                    <button
-                      onClick={() => {
-                        signOut();
-                        setUserMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition"
-                    >
+                    <button onClick={() => { signOut(); setUserMenu(false); }}
+                      className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition">
                       Sign Out
                     </button>
                   </div>
@@ -196,115 +226,188 @@ const Navbar = () => {
             ) : (
               <button
                 onClick={() => signIn("google")}
-                className="hidden md:flex items-center gap-2 bg-[#17d492] text-[#22323c] px-4 py-2 rounded-xl font-bold text-sm hover:bg-[#14b87e] transition"
+                className="hidden lg:flex items-center gap-2 bg-[#17d492] text-[#22323c] px-4 py-2 rounded-xl font-black text-sm hover:bg-[#14b87e] transition"
               >
                 Sign In
               </button>
             )}
 
-            {/* Mobile toggle */}
+            {/* Mobile hamburger */}
             <button
-              className="md:hidden text-white hover:text-[#17d492] transition-colors"
-              onClick={() => setOpen(!open)}
+              className="lg:hidden text-white hover:text-[#17d492] transition p-1"
+              onClick={() => setMobileOpen(!mobileOpen)}
             >
-              {open ? <FaTimes size={24} /> : <FaBars size={24} />}
+              {mobileOpen ? <FaTimes size={22} /> : <FaBars size={22} />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* ── Desktop Dropdown: Stationery ── */}
+      {activeDropdown === "stationery" && (
+        <div className="hidden lg:block absolute top-full left-0 right-0 bg-[#1a2830] border-t border-[#17d492]/10 shadow-2xl z-40">
+          <div className="max-w-7xl mx-auto px-6 py-6">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">✏️</span>
+              <h3 className="text-lg font-black text-[#17d492]">Stationery</h3>
+              <Link href="/stationery" onClick={() => setActiveDropdown(null)}
+                className="ml-auto text-xs font-black text-[#17d492] border border-[#17d492]/30 px-3 py-1.5 rounded-lg hover:bg-[#17d492]/10 transition">
+                View All →
+              </Link>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {STATIONERY_SUBS.map((sub) => (
+                <Link
+                  key={sub.href}
+                  href={sub.href}
+                  onClick={() => setActiveDropdown(null)}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm text-slate-300 hover:text-[#17d492] hover:bg-[#17d492]/8 border border-transparent hover:border-[#17d492]/20 transition-all"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shrink-0" />
+                  {sub.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Desktop Dropdown: Others (mega menu) ── */}
+      {activeDropdown === "others" && (
+        <div className="hidden lg:block absolute top-full left-0 right-0 bg-[#1a2830] border-t border-[#17d492]/10 shadow-2xl z-40">
+          <div className="max-w-7xl mx-auto px-6 py-6">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="text-2xl">⚡</span>
+              <h3 className="text-lg font-black text-[#17d492]">All Services & Others</h3>
+              <Link href="/others" onClick={() => setActiveDropdown(null)}
+                className="ml-auto text-xs font-black text-[#17d492] border border-[#17d492]/30 px-3 py-1.5 rounded-lg hover:bg-[#17d492]/10 transition">
+                View All →
+              </Link>
+            </div>
+            <div className="grid grid-cols-4 gap-6">
+              {OTHERS_SECTIONS.map((section) => (
+                <div key={section.title}>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                    {section.title}
+                  </p>
+                  <div className="space-y-1">
+                    {section.links.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setActiveDropdown(null)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-[#17d492] hover:bg-[#17d492]/8 transition"
+                      >
+                        <span className="w-1 h-1 rounded-full bg-[#17d492]/50 shrink-0" />
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobile Menu ── */}
       <div
-        className={`fixed inset-x-0 top-[72px] bg-[#1a2830] border-t border-white/5 transition-all duration-500 ease-in-out md:hidden overflow-y-auto max-h-[80vh] ${
-          open
-            ? "translate-y-0 opacity-100 visible"
-            : "-translate-y-4 opacity-0 invisible"
+        className={`lg:hidden fixed inset-x-0 top-[60px] bottom-0 bg-[#1a2830] overflow-y-auto transition-all duration-300 z-40 ${
+          mobileOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"
         }`}
       >
-        <div className="flex flex-col gap-1 p-6">
-          {navLinks.map((link, i) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              onClick={() => setOpen(false)}
-              className="text-xl font-black text-white hover:text-[#17d492] transition-all py-3 border-b border-white/5"
-              style={{ transitionDelay: `${i * 50}ms` }}
-            >
-              {link.name}
-            </Link>
-          ))}
+        <div className="p-4 space-y-1">
+          {TOP_NAV.map((item, i) => {
+            const hasDropdown = item.id === "stationery" || item.id === "others";
+            const isExpanded = mobileExpanded === item.id;
+            const subItems = item.id === "stationery" ? STATIONERY_SUBS
+              : item.id === "others" ? OTHERS_SECTIONS.flatMap((s) => s.links)
+              : [];
 
-          {/* Mobile Groceries */}
-          <div>
-            <button
-              onClick={() => setGroceryOpen(!groceryOpen)}
-              className="w-full flex items-center justify-between text-xl font-black text-white hover:text-[#17d492] transition py-3 border-b border-white/5"
-            >
-              Groceries
-              <FaChevronDown
-                className={`text-sm transition-transform ${groceryOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-            {groceryOpen && (
-              <div className="pl-4 pb-2">
-                {groceryLinks.map((link) => (
+            return (
+              <div key={item.id}>
+                {hasDropdown ? (
+                  <>
+                    <button
+                      onClick={() => setMobileExpanded(isExpanded ? null : item.id)}
+                      className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-white font-black hover:text-[#17d492] hover:bg-white/5 transition"
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className="text-xl">{item.emoji}</span>
+                        <span className="text-sm uppercase tracking-wider">{item.label}</span>
+                      </span>
+                      <FaChevronDown size={11} className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                    </button>
+                    {isExpanded && (
+                      <div className="ml-10 mt-1 space-y-1 pb-2">
+                        {subItems.map((sub) => (
+                          <Link
+                            key={sub.href}
+                            href={sub.href}
+                            onClick={() => setMobileOpen(false)}
+                            className="block px-4 py-2.5 rounded-lg text-sm text-slate-400 hover:text-[#17d492] hover:bg-[#17d492]/5 transition"
+                          >
+                            {sub.label}
+                          </Link>
+                        ))}
+                        <Link
+                          href={item.href}
+                          onClick={() => setMobileOpen(false)}
+                          className="block px-4 py-2 text-xs text-[#17d492] font-black"
+                        >
+                          View All {item.label} →
+                        </Link>
+                      </div>
+                    )}
+                  </>
+                ) : (
                   <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 py-2.5 text-slate-400 hover:text-[#17d492] transition text-sm"
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-white font-black hover:text-[#17d492] hover:bg-white/5 transition"
                   >
-                    <span className="text-[#17d492]">{link.icon}</span>
-                    {link.label}
+                    <span className="text-xl">{item.emoji}</span>
+                    <span className="text-sm uppercase tracking-wider">{item.label}</span>
                   </Link>
-                ))}
-                <Link
-                  href="/groceries"
-                  onClick={() => setOpen(false)}
-                  className="block py-2 text-sm text-[#17d492] font-bold"
-                >
-                  All Groceries →
-                </Link>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })}
 
-          <div className="mt-4 pt-4 border-t border-white/10">
+          {/* Mobile divider + Auth */}
+          <div className="border-t border-white/10 pt-4 mt-4 space-y-2">
+            <Link href="/pyqs" onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-white font-black hover:text-[#17d492] hover:bg-white/5 transition text-sm uppercase tracking-wider">
+              📚 PYQs
+            </Link>
+
             {session ? (
               <>
-                <Link
-                  href="/profile"
-                  onClick={() => setOpen(false)}
-                  className="block py-3 text-slate-300 font-bold hover:text-[#17d492] transition"
-                >
-                  My Orders
+                <Link href="/profile" onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-[#17d492] hover:bg-white/5 transition text-sm">
+                  <FaUser size={14} /> My Orders
                 </Link>
-                <button
-                  onClick={() => signOut()}
-                  className="block py-3 text-red-400 font-bold"
-                >
+                <button onClick={() => signOut()}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition text-sm font-bold">
                   Sign Out
                 </button>
               </>
             ) : (
               <button
                 onClick={() => signIn("google")}
-                className="w-full bg-[#17d492] text-[#22323c] py-3 rounded-xl font-black hover:bg-[#14b87e] transition"
+                className="w-full bg-[#17d492] text-[#22323c] py-3.5 rounded-xl font-black hover:bg-[#14b87e] transition text-sm"
               >
                 Sign in with Google
               </button>
             )}
-            <div className="mt-6 pt-4 border-t border-white/10">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                Support
-              </p>
-              <p className="text-[#17d492] font-bold mt-1">+91 7982670413</p>
+
+            <div className="px-4 pt-3">
+              <p className="text-xs text-slate-600 font-bold uppercase tracking-widest">Support</p>
+              <p className="text-[#17d492] font-black mt-1">+91 7982670413</p>
             </div>
           </div>
         </div>
       </div>
     </nav>
   );
-};
-
-export default Navbar;
+}
