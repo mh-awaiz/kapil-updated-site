@@ -20,14 +20,30 @@ export const CartProvider = ({ children }) => {
 
   // Add each click as a new cart line
   const addToCart = (product) => {
-    setCart((prev) => [
-      ...prev,
-      {
-        ...product,
-        quantity: 1,
-        cartItemId: Date.now() + Math.random(), // unique ID per line
-      },
-    ]);
+    setCart((prev) => {
+      const existingItem = prev.find(
+        (item) => item.id === product.id
+      );
+
+      if (existingItem) {
+        // Increase quantity of existing item
+        return prev.map((item) =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+
+      // Add new item if not exists
+      return [
+        ...prev,
+        {
+          ...product,
+          quantity: 1,
+          cartItemId: Date.now() + Math.random(),
+        },
+      ];
+    });
   };
 
   //Increase quantity by cartItemId
