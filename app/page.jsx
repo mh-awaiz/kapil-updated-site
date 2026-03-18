@@ -11,11 +11,11 @@ export default function Home() {
     <main>
       <HeroSection />
       <ServicesPreview />
-      <ProductSearch />
+      {/* <ProductSearch /> */}
       <StationeryPreview />
       <GroceriesPreview />
       <PYQSection />
-      <AboutSection />
+      {/* <AboutSection /> */}
     </main>
   );
 }

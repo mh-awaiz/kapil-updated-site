@@ -47,8 +47,11 @@ export default function CheckoutPage() {
   // Mobile-only: brief splash before redirecting to UPI app
   const [showRedirectSplash, setShowRedirectSplash] = useState(false);
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const deliveryCharge = Math.round(subtotal * 0.10); // 10% delivery charge for all
+  const subtotal = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+  const deliveryCharge = Math.round(subtotal * 0.1); // 10% delivery charge for all
   const grandTotal = subtotal + deliveryCharge;
 
   const validateForm = () => {
@@ -181,7 +184,9 @@ export default function CheckoutPage() {
         </h3>
         <p className="text-slate-400 text-sm leading-relaxed mb-6">
           After paying, make sure to{" "}
-          <span className="text-[#17d492] font-bold">copy the Transaction ID</span>{" "}
+          <span className="text-[#17d492] font-bold">
+            copy the Transaction ID
+          </span>{" "}
           from your UPI app — you'll need it to verify your payment.
         </p>
 
@@ -198,7 +203,6 @@ export default function CheckoutPage() {
     </div>
   );
 
-
   const MobileUTRModal = () => (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
       <div className="bg-[#1a2830] border border-[#17d492]/30 rounded-t-3xl w-full max-w-lg p-6 pb-10 shadow-2xl">
@@ -209,20 +213,26 @@ export default function CheckoutPage() {
           <FaCheckCircle size={24} className="text-[#17d492]" />
           <div>
             <h3 className="font-black text-white text-lg">Payment Done?</h3>
-            <p className="text-slate-400 text-xs">Enter your transaction ID to confirm your order</p>
+            <p className="text-slate-400 text-xs">
+              Enter your transaction ID to confirm your order
+            </p>
           </div>
         </div>
 
         {/* Amount reminder */}
         <div className="bg-[#17d492]/10 border border-[#17d492]/20 rounded-xl px-4 py-3 mb-5 flex items-center justify-between">
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Amount Paid</p>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+            Amount Paid
+          </p>
           <p className="text-2xl font-black text-[#17d492]">₹{grandTotal}</p>
         </div>
 
         {/* UPI ID reminder */}
         <div className="mb-5 bg-[#22323c] border border-white/10 rounded-xl px-4 py-3 text-center">
           <p className="text-xs text-slate-500 mb-1">Paid to UPI ID</p>
-          <p className="text-sm font-black text-white tracking-wide">7982670413@sbi</p>
+          <p className="text-sm font-black text-white tracking-wide">
+            7982670413@sbi
+          </p>
         </div>
 
         <div className="mb-4">
@@ -234,13 +244,17 @@ export default function CheckoutPage() {
             inputMode="numeric"
             placeholder="e.g. 423456789012"
             value={utrNumber}
-            onChange={(e) => { setUtrNumber(e.target.value); setUtrError(""); }}
+            onChange={(e) => {
+              setUtrNumber(e.target.value);
+              setUtrError("");
+            }}
             className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition text-white text-sm"
             autoFocus
           />
           {utrError && <p className="text-red-400 text-xs mt-1">{utrError}</p>}
           <p className="text-slate-600 text-xs mt-1">
-            Find this in your UPI app after payment — it's the 12-digit reference number.
+            Find this in your UPI app after payment — it's the 12-digit
+            reference number.
           </p>
         </div>
 
@@ -268,7 +282,11 @@ export default function CheckoutPage() {
         </button>
 
         <button
-          onClick={() => { setShowMobileUTR(false); setUtrNumber(""); setUtrError(""); }}
+          onClick={() => {
+            setShowMobileUTR(false);
+            setUtrNumber("");
+            setUtrError("");
+          }}
           className="w-full mt-2 py-2.5 rounded-xl text-xs text-slate-500 hover:text-slate-300 transition"
         >
           Cancel
@@ -472,6 +490,7 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-black mb-4 text-[#17d492]">
                   Important Delivery Information
                 </h2>
+                <p>-: 7982670413</p>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-3 text-sm text-white/70">
                     <FaCalendarCheck
@@ -529,7 +548,8 @@ export default function CheckoutPage() {
                       size={15}
                     />
                     <span>
-                      For urgent orders, WhatsApp us:{" "}
+                      For urgent orders or anyone has only cash, you can
+                      WhatsApp us:{" "}
                       <a
                         href="https://wa.me/917982670413"
                         target="_blank"

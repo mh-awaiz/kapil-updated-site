@@ -45,7 +45,7 @@ const Hero = () => {
               {/* Subtle background glow for the image */}
               <div className="absolute inset-0 bg-[#17d492]/20 blur-3xl rounded-full scale-75 group-hover:scale-100 transition-transform duration-500"></div>
               <Image
-                src="/background.png"
+                src="/heroimage.png"
                 alt="Stationery Items"
                 width={550}
                 height={550}
