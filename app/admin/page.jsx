@@ -444,6 +444,7 @@ function ViewProducts({ adminKey }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [editingProduct, setEditingProduct] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -519,12 +520,168 @@ function ViewProducts({ adminKey }) {
               {product.actualPrice && <span className="text-xs text-slate-500 line-through">₹{product.actualPrice}</span>}
               {product.unit && <span className="text-xs text-slate-500">{product.unit}</span>}
             </div>
-            <button onClick={() => deleteProduct(product._id)}
-              className="w-full border border-red-500/30 text-red-400 py-2 rounded-xl text-sm font-bold hover:bg-red-500/10 transition">
-              Delete
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => deleteProduct(product._id)}
+                className="w-full border border-red-500/30 text-red-400 py-2 rounded-xl text-sm font-bold hover:bg-red-500/10 transition">Delete
+              </button>
+              <button
+                onClick={() => setEditingProduct(product)}
+                className="w-full border border-[#17d492]/30 text-[#17d492] py-2 rounded-xl text-sm font-bold hover:bg-[#17d492]/10 transition mb-2">Edit
+              </button>
+            </div>
           </div>
         ))}
+      </div>
+        {editingProduct && (
+          <EditProductModal
+            product={editingProduct}
+            adminKey={adminKey}
+            onClose={() => setEditingProduct(null)}
+            onSuccess={load}
+          />
+        )}
+    </div>
+  );
+}
+function EditProductModal({ product, adminKey, onClose, onSuccess }) {
+  const [form, setForm] = useState(product);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setForm(product);
+  }, [product]);
+
+  const SUBCATS = {
+    stationery: ["notebooks", "pens", "art", "geometry", "other"],
+    groceries: ["snacks_drinks", "beauty_personal_care", "home_lifestyle", "food_veg", "food_nonveg"],
+  };
+
+  const handleUpdate = async () => {
+    setLoading(true);
+
+    const { _id, ...rest } = form;
+
+    const res = await fetch("/api/admin/products/update", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-key": adminKey,
+      },
+      body: JSON.stringify({
+        id: product._id,
+        ...rest,
+      }),
+    });
+
+    const data = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      alert("❌ " + data.error);
+      return;
+    }
+
+    onSuccess();
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+      <div className="bg-[#1a2830] p-6 rounded-2xl w-full max-w-lg border border-[#17d492]/20 overflow-y-auto max-h-[90vh]">
+        <h2 className="text-lg font-black text-[#17d492] mb-4">Edit Product</h2>
+
+        {/* Category */}
+        <div className="flex gap-3 mb-3">
+          {["stationery", "groceries"].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setForm({ ...form, category: cat, subcategory: "" })}
+              className={`flex-1 py-2 rounded-xl font-bold ${
+                form.category === cat
+                  ? "bg-[#17d492] text-[#22323c]"
+                  : "bg-[#22323c]"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Subcategory */}
+        <select
+          value={form.subcategory || ""}
+          onChange={(e) => setForm({ ...form, subcategory: e.target.value })}
+          className="w-full mb-3 px-4 py-2 rounded-xl bg-[#22323c]"
+        >
+          <option value="">Select subcategory</option>
+          {SUBCATS[form.category]?.map((s) => (
+            <option key={s} value={s}>
+              {s.replace(/_/g, " ")}
+            </option>
+          ))}
+        </select>
+
+        {/* Title */}
+        <input
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          className="w-full mb-3 px-4 py-2 rounded-xl bg-[#22323c]"
+        />
+
+        {/* Price + MRP */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <input
+            type="number"
+            value={form.price || ""}
+            onChange={(e) =>
+              setForm({ ...form, price: Number(e.target.value) })
+            }
+            className="w-full px-4 py-2 rounded-xl bg-[#22323c]"
+          />
+          <input
+            type="number"
+            value={form.actualPrice || ""}
+            onChange={(e) =>
+              setForm({ ...form, actualPrice: Number(e.target.value) })
+            }
+            className="w-full px-4 py-2 rounded-xl bg-[#22323c]"
+            placeholder="MRP"
+          />
+        </div>
+
+        {/* Unit */}
+        <input
+          value={form.unit || ""}
+          onChange={(e) => setForm({ ...form, unit: e.target.value })}
+          className="w-full mb-3 px-4 py-2 rounded-xl bg-[#22323c]"
+          placeholder="Unit (e.g. 500g)"
+        />
+
+        {/* Description */}
+        <textarea
+          value={form.description}
+          onChange={(e) =>
+            setForm({ ...form, description: e.target.value })
+          }
+          className="w-full mb-3 px-4 py-2 rounded-xl bg-[#22323c]"
+        />
+
+        {/* Buttons */}
+        <div className="flex gap-3">
+          <button
+            onClick={handleUpdate}
+            className="flex-1 bg-[#17d492] text-[#22323c] py-2 rounded-xl font-bold"
+          >
+            {loading ? "Updating..." : "Update"}
+          </button>
+
+          <button
+            onClick={onClose}
+            className="flex-1 border border-white/20 py-2 rounded-xl"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );
