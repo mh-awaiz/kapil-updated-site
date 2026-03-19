@@ -27,6 +27,7 @@ import {
   FaWhatsapp,
 } from "react-icons/fa";
 import { MdDraw, MdOutlineOtherHouses, MdMenuBook } from "react-icons/md";
+import { MdEventBusy } from "react-icons/md";
 import { GiHamburger } from "react-icons/gi";
 import { BiDrink } from "react-icons/bi";
 import Image from "next/image";
@@ -81,13 +82,13 @@ const STATIONERY_SUBS = [
     href: "/stationery/",
     Icon: FaBook,
   },
-  { label: "Calculators", href: "/stationery/calculators", Icon: FaCalculator },
+  { label: "Calculators", href: "/stationery", Icon: FaCalculator },
   {
     label: "Drawing Materials",
     href: "/stationery/",
     Icon: MdDraw,
   },
-  { label: "Pens (All Types)", href: "/stationery/pens", Icon: FaPen },
+  { label: "Pens (All Types)", href: "/stationery/", Icon: FaPen },
   {
     label: "Files & Folders",
     href: "/stationery/",
@@ -198,6 +199,11 @@ const OTHERS_SECTIONS = [
       { label: "Clothes Ironing", href: "/others#ironing", Icon: FaTshirt },
       { label: "Laundry Service", href: "/others#laundry", Icon: FaTshirt },
       { label: "Resume / CV Making", href: "/others#resume", Icon: FaIdCard },
+      {
+        label: "Leave & Absence Help",
+        href: "/others#leave-absence",
+        Icon: MdEventBusy,
+      },
       {
         label: "Laptop / Mobile Repair",
         href: "/others#laptop-repair",

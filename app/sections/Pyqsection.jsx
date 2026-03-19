@@ -181,7 +181,7 @@ const PYQSection = () => {
                               hover:opacity-90 transition shrink-0 ml-4"
                           >
                             <FaDownload className="text-xs" />
-                            <span className="hidden sm:inline">Download</span>
+                            <span className="hidden sm:inline">Open</span>
                           </a>
                         </div>
                       ))}

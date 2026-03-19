@@ -18,7 +18,7 @@ const SERVICES = [
     label: "Grocery",
     desc: "Daily essentials, fruits, vegetables & more",
     Icon: FaShoppingBasket,
-    href: "/grocery",
+    href: "/groceries",
     color: "from-green-500/20 to-emerald-500/20",
     border: "border-green-500/30",
     iconBg: "bg-green-500/15",

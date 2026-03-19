@@ -21,6 +21,12 @@ import {
   FaMale,
   FaFemale,
   FaShoePrints,
+  FaFileSignature,
+  FaUserClock,
+  FaClipboardList,
+  FaHospital,
+  FaInstagram,
+  FaTelegram,
 } from "react-icons/fa";
 import {
   MdMenuBook,
@@ -29,15 +35,14 @@ import {
   MdDry,
   MdElectricBolt,
   MdMoveToInbox,
-  MdOutlineStorefront,
   MdMedicalServices,
   MdSpa,
   MdSoap,
+  MdEventBusy,
 } from "react-icons/md";
 import { GiKitchenKnives, GiCookingPot, GiMedicalPack } from "react-icons/gi";
 import { BsPersonBadge, BsBagFill } from "react-icons/bs";
 
-// Icon map for each section header
 const SECTION_ICONS = {
   assignment: FaFileAlt,
   "earn-rent": FaHome,
@@ -48,9 +53,9 @@ const SECTION_ICONS = {
   utensils: GiKitchenKnives,
   clothes: FaTshirt,
   chemist: MdMedicalServices,
+  "leave-absence": MdEventBusy,
 };
 
-// Icon map for each individual item
 const ITEM_ICONS = {
   // Assignment
   "IGNOU Assignment Work": FaBook,
@@ -125,6 +130,19 @@ const ITEM_ICONS = {
   "Women Hygiene": FaFemale,
   "Makeup & Beauty": MdSpa,
   "Perfumes & Deodorants": MdSpa,
+  // Leave & Absence
+  "Leave Application Writing": FaFileSignature,
+  "Medical Leave Letter": FaHospital,
+  "Casual Leave Application": FaUserClock,
+  "Duty Leave Application": FaClipboardList,
+  "Absence Explanation Letter": FaFileAlt,
+  "Late Coming Application": FaUserClock,
+  "Early Leave Request": MdEventBusy,
+  "College Gate Pass Help": FaIdCard,
+  "Hostel Leave Application": FaHome,
+  "Internship / Training Letter": FaBriefcase,
+  "NOC Letter Help": FaFileAlt,
+  "Character Certificate Help": FaFileSignature,
 };
 
 const SECTIONS = [
@@ -202,6 +220,32 @@ const SECTIONS = [
       "Packing & Shifting Help",
       "Printout / Scan Service",
       "ID Card / Document Help",
+    ],
+  },
+  // ── NEW SECTION ──
+  {
+    id: "leave-absence",
+    title: "Leave & Absence Solution",
+    color: "#f59e0b",
+    bgColor: "bg-amber-500/10",
+    borderColor: "border-amber-500/20",
+    contact: false,
+    badge: "New",
+    instagramLink: "https://www.instagram.com/YOUR_INSTAGRAM_HANDLE", 
+    telegramLink: "https://t.me/YOUR_TELEGRAM_CHANNEL",
+    items: [
+      "Leave Application Writing",
+      "Medical Leave Letter",
+      "Casual Leave Application",
+      "Duty Leave Application",
+      "Absence Explanation Letter",
+      "Late Coming Application",
+      "Early Leave Request",
+      "College Gate Pass Help",
+      "Hostel Leave Application",
+      "Internship / Training Letter",
+      "NOC Letter Help",
+      "Character Certificate Help",
     ],
   },
   {
@@ -336,9 +380,45 @@ export default function OthersClient() {
                 >
                   <Icon size={11} />
                   {s.title.split(" ").slice(0, 3).join(" ")}
+                  {s.badge && (
+                    <span className="bg-amber-500 text-[#22323c] text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                      {s.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
+          </div>
+
+          {/* Social links */}
+          <div className="flex items-center justify-center gap-4 mt-6">
+            <p className="text-xs text-slate-600 font-bold uppercase tracking-wider">
+              Find us on
+            </p>
+            <a
+              href="https://www.instagram.com/kapilstore.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-pink-400 transition"
+            >
+              <FaInstagram size={15} className="text-pink-400" /> Instagram
+            </a>
+            <a
+              href="https://t.me/kapilstore"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-blue-400 transition"
+            >
+              <FaTelegram size={15} className="text-blue-400" /> Telegram
+            </a>
+            <a
+              href="https://wa.me/917982670413"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-[#17d492] transition"
+            >
+              <FaWhatsapp size={15} className="text-[#17d492]" /> WhatsApp
+            </a>
           </div>
         </div>
       </div>
@@ -367,9 +447,16 @@ export default function OthersClient() {
                     <SectionIcon size={18} style={{ color: section.color }} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-white">
-                      {section.title}
-                    </h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-black text-white">
+                        {section.title}
+                      </h2>
+                      {section.badge && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500 text-[#22323c]">
+                          {section.badge}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {section.items.length} services available
                     </p>
@@ -406,6 +493,7 @@ export default function OthersClient() {
               </div>
 
               {/* Contact CTA */}
+              {/* Contact CTA */}
               {section.contact && (
                 <a
                   href="https://wa.me/917982670413"
@@ -422,6 +510,33 @@ export default function OthersClient() {
                   WhatsApp to Enquire
                 </a>
               )}
+
+              {(section.instagramLink || section.telegramLink) && (
+                <div className="flex flex-wrap gap-3 mt-3">
+                  {section.instagramLink && (
+                    <a
+                      href={section.instagramLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-black px-5 py-2.5 rounded-xl transition bg-pink-500/15 text-pink-400 border border-pink-500/30 hover:bg-pink-500/25"
+                    >
+                      <FaInstagram size={15} />
+                      Instagram
+                    </a>
+                  )}
+                  {section.telegramLink && (
+                    <a
+                      href={section.telegramLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-black px-5 py-2.5 rounded-xl transition bg-blue-500/15 text-blue-400 border border-blue-500/30 hover:bg-blue-500/25"
+                    >
+                      <FaTelegram size={15} />
+                      Telegram
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -436,15 +551,32 @@ export default function OthersClient() {
           <p className="text-slate-500 text-sm mb-5">
             We deliver almost everything for students. Just message us!
           </p>
-          <a
-            href="https://wa.me/917982670413"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-[#17d492] text-[#22323c] px-6 py-3 rounded-xl font-black hover:bg-[#14b87e] transition"
-          >
-            <FaWhatsapp size={16} />
-            WhatsApp: 7982670413
-          </a>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a
+              href="https://wa.me/917982670413"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#17d492] text-[#22323c] px-6 py-3 rounded-xl font-black hover:bg-[#14b87e] transition"
+            >
+              <FaWhatsapp size={16} /> WhatsApp: 7982670413
+            </a>
+            <a
+              href="https://www.instagram.com/kapilstore.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-pink-500/15 text-pink-400 border border-pink-500/30 px-6 py-3 rounded-xl font-black hover:bg-pink-500/25 transition"
+            >
+              <FaInstagram size={16} /> Instagram
+            </a>
+            <a
+              href="https://t.me/kapilstore"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-blue-500/15 text-blue-400 border border-blue-500/30 px-6 py-3 rounded-xl font-black hover:bg-blue-500/25 transition"
+            >
+              <FaTelegram size={16} /> Telegram
+            </a>
+          </div>
         </div>
       </div>
     </div>
