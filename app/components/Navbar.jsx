@@ -35,36 +35,41 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { useCart } from "../context/CartContext";
 
 const TOP_NAV = [
-  { id: "grocery", label: "Grocery", Icon: FaShoppingBasket, href: "/groceries" },
+  {
+    id: "grocery",
+    label: "Grocery",
+    Icon: FaShoppingBasket,
+    href: "/groceries",
+  },
   { id: "food", label: "Food", Icon: FaUtensils, href: "/food" },
   {
     id: "juices",
     label: "Juices & Shakes",
-    Icon: FaGlassWhiskey,
+    // Icon: FaGlassWhiskey,
     href: "/juices-shakes",
   },
   {
     id: "stationery",
     label: "Stationery",
-    Icon: FaPencilAlt,
+    // Icon: FaPencilAlt,
     href: "/stationery",
   },
   {
     id: "assignment",
-    label: "Assignments",
-    Icon: FaFileAlt,
+    label: "Assignment Paid Service",
+    // Icon: FaFileAlt,
     href: "/others#assignment",
   },
   {
     id: "tuition",
-    label: "Tuition",
-    Icon: FaChalkboardTeacher,
+    label: "Tution Services ",
+    // Icon: FaChalkboardTeacher,
     href: "/others#tuition",
   },
   {
     id: "earn-rent",
-    label: "Earn & Rent",
-    Icon: FaHome,
+    label: "Student Earn and Rent Hub ",
+    // Icon: FaHome,
     href: "/others#earn-rent",
   },
   { id: "others", label: "Others", Icon: FaEllipsisH, href: "/others" },
@@ -290,7 +295,7 @@ export default function Navbar() {
                         : "text-slate-300 hover:text-[#17d492] hover:bg-white/5"
                     }`}
                   >
-                    <Icon size={13} />
+                    {/* <Icon size={13} /> */}
                     <span>{item.label}</span>
                     <FaChevronDown
                       size={9}
@@ -306,7 +311,7 @@ export default function Navbar() {
                   href={item.href}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider text-slate-300 hover:text-[#17d492] hover:bg-white/5 transition-all"
                 >
-                  <Icon size={13} />
+                  {/* <Icon size={13} /> */}
                   <span>{item.label}</span>
                 </Link>
               );
@@ -519,7 +524,7 @@ export default function Navbar() {
                       className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-white font-black hover:text-[#17d492] hover:bg-white/5 transition"
                     >
                       <span className="flex items-center gap-3">
-                        <Icon size={16} className="text-[#17d492]" />
+                        {/* <Icon size={16} className="text-[#17d492]" /> */}
                         <span className="text-sm uppercase tracking-wider">
                           {item.label}
                         </span>
@@ -564,7 +569,7 @@ export default function Navbar() {
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-white font-black hover:text-[#17d492] hover:bg-white/5 transition"
                   >
-                    <Icon size={16} className="text-[#17d492]" />
+                    {/* <Icon size={16} className="text-[#17d492]" /> */}
                     <span className="text-sm uppercase tracking-wider">
                       {item.label}
                     </span>

@@ -1152,13 +1152,14 @@ function EditProductModal({ product, adminKey, onClose, onSuccess }) {
 /* ============================================================
    PYQ DASHBOARD
    ============================================================ */
+
 function PYQDashboard({ adminKey }) {
   const [pyqs, setPyqs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [view, setView] = useState("list");
   const [openDept, setOpenDept] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [linkError, setLinkError] = useState("");
 
   const [form, setForm] = useState({
     department: "",
@@ -1167,7 +1168,7 @@ function PYQDashboard({ adminKey }) {
     subject: "",
     subjectCode: "",
     year: "",
-    pdfUrl: "",
+    pdfUrl: "", // Will store the Google Drive share link
   });
 
   const DEPARTMENTS = [
@@ -1213,23 +1214,29 @@ function PYQDashboard({ adminKey }) {
     if (depts.length > 0 && !openDept) setOpenDept(depts[0]);
   }, [pyqs]);
 
-  const uploadPDF = async (file) => {
-    setUploading(true);
-    const data = new FormData();
-    data.append("file", file);
-    data.append("upload_preset", "products");
-    data.append("resource_type", "raw");
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/dpsfw0apo/raw/upload",
-      { method: "POST", body: data },
-    );
-    const json = await res.json();
-    setUploading(false);
-    if (!res.ok) {
-      alert(json.error?.message || "PDF upload failed");
-      return null;
+  // Convert Google Drive share link → direct download link
+  const getDriveDownloadUrl = (url) => {
+    const match = url?.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match) {
+      return `https://drive.google.com/uc?export=download&id=${match[1]}`;
     }
-    return json.secure_url;
+    return url; // return as-is if not a Drive link
+  };
+
+  // Validate Google Drive link
+  const validateDriveLink = (url) => {
+    if (!url) return "Please paste a Google Drive link";
+    if (!url.includes("drive.google.com"))
+      return "Must be a Google Drive link (drive.google.com)";
+    if (!url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/))
+      return "Invalid Drive link format. Share the file and paste the link.";
+    return null;
+  };
+
+  const handleLinkChange = (val) => {
+    setForm({ ...form, pdfUrl: val });
+    if (val) setLinkError(validateDriveLink(val) || "");
+    else setLinkError("");
   };
 
   const handleAdd = async (e) => {
@@ -1240,20 +1247,31 @@ function PYQDashboard({ adminKey }) {
       alert("Please enter a department name");
       return;
     }
-    if (!form.pdfUrl) {
-      alert("Please upload a PDF first");
+
+    const err = validateDriveLink(form.pdfUrl);
+    if (err) {
+      setLinkError(err);
       return;
     }
+
+    // Store the download URL (converted from share link)
+    const downloadUrl = getDriveDownloadUrl(form.pdfUrl);
+
     const res = await fetch("/api/admin/pyqs", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-      body: JSON.stringify({ ...form, department: finalDept }),
+      body: JSON.stringify({
+        ...form,
+        pdfUrl: downloadUrl,
+        department: finalDept,
+      }),
     });
     const data = await res.json();
     if (!res.ok) {
       alert("❌ Failed: " + data.error);
       return;
     }
+
     setSuccess(true);
     setForm({
       department: "",
@@ -1264,6 +1282,7 @@ function PYQDashboard({ adminKey }) {
       year: "",
       pdfUrl: "",
     });
+    setLinkError("");
     setTimeout(() => setSuccess(false), 3000);
     setView("list");
     load();
@@ -1285,16 +1304,21 @@ function PYQDashboard({ adminKey }) {
     return acc;
   }, {});
   const departments = Object.keys(grouped);
+
   const fileNamePreview =
     form.branch && form.subject && form.subjectCode
       ? `${form.branch} - ${form.subject} - ${form.subjectCode}`
       : null;
 
+  // Check if link is valid Drive link
+  const isDriveValid = form.pdfUrl && !validateDriveLink(form.pdfUrl);
+
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-black text-[#17d492]">
-          📚 PYQ Manager
+          PYQ Manager
           {pyqs.length > 0 && (
             <span className="ml-2 text-sm font-bold text-slate-400">
               ({pyqs.length} files)
@@ -1319,11 +1343,26 @@ function PYQDashboard({ adminKey }) {
         </div>
       )}
 
+      {/* ── ADD FORM ── */}
       {view === "add" && (
         <form
           onSubmit={handleAdd}
           className="bg-[#1a2830] rounded-2xl p-6 border border-white/5 max-w-xl space-y-4"
         >
+          {/* How to guide */}
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-xs text-blue-300 space-y-1.5">
+            <p className="font-black text-blue-200 text-sm mb-2">
+              How to add a PYQ:
+            </p>
+            <p>1. Upload the PDF to your Google Drive</p>
+            <p>
+              2. Right-click the file → <strong>Share</strong> →{" "}
+              <strong>Anyone with the link</strong> → Copy link
+            </p>
+            <p>3. Paste the link below</p>
+          </div>
+
+          {/* Department */}
           <div>
             <label className="text-xs text-slate-400 mb-1 block font-bold uppercase tracking-wider">
               Department *
@@ -1344,6 +1383,7 @@ function PYQDashboard({ adminKey }) {
               ))}
             </select>
           </div>
+
           {form.department === "Other" && (
             <div>
               <label className="text-xs text-slate-400 mb-1 block font-bold uppercase tracking-wider">
@@ -1360,6 +1400,8 @@ function PYQDashboard({ adminKey }) {
               />
             </div>
           )}
+
+          {/* Branch */}
           <div>
             <label className="text-xs text-slate-400 mb-1 block font-bold uppercase tracking-wider">
               Branch *
@@ -1372,6 +1414,8 @@ function PYQDashboard({ adminKey }) {
               className="w-full px-4 py-2.5 rounded-xl bg-[#22323c] border border-white/10 text-white focus:outline-none focus:border-[#17d492]"
             />
           </div>
+
+          {/* Subject + Code */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-slate-400 mb-1 block font-bold uppercase tracking-wider">
@@ -1400,6 +1444,8 @@ function PYQDashboard({ adminKey }) {
               />
             </div>
           </div>
+
+          {/* Year */}
           <div>
             <label className="text-xs text-slate-400 mb-1 block font-bold uppercase tracking-wider">
               Year *
@@ -1418,6 +1464,8 @@ function PYQDashboard({ adminKey }) {
               ))}
             </select>
           </div>
+
+          {/* Filename preview */}
           {fileNamePreview && (
             <div className="bg-[#17d492]/5 border border-[#17d492]/20 rounded-xl px-4 py-3">
               <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">
@@ -1428,42 +1476,56 @@ function PYQDashboard({ adminKey }) {
               </p>
             </div>
           )}
+
+          {/* Google Drive Link */}
           <div>
-            <label className="text-xs text-slate-400 mb-2 block font-bold uppercase tracking-wider">
-              Upload PDF *
+            <label className="text-xs text-slate-400 mb-1 block font-bold uppercase tracking-wider">
+              Google Drive Link *
             </label>
             <input
-              type="file"
-              accept=".pdf"
-              onChange={async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const url = await uploadPDF(file);
-                if (url) setForm({ ...form, pdfUrl: url });
-              }}
-              className="text-sm text-slate-400"
+              type="url"
+              placeholder="https://drive.google.com/file/d/..."
+              value={form.pdfUrl}
+              onChange={(e) => handleLinkChange(e.target.value)}
+              className={`w-full px-4 py-3 rounded-xl bg-[#22323c] border text-white text-sm focus:outline-none transition ${
+                linkError
+                  ? "border-red-500/50 focus:border-red-500"
+                  : isDriveValid
+                    ? "border-[#17d492]/50 focus:border-[#17d492]"
+                    : "border-white/10 focus:border-[#17d492]"
+              }`}
             />
-            {uploading && (
-              <p className="text-xs text-[#17d492] mt-1 animate-pulse">
-                Uploading PDF...
-              </p>
+            {linkError && (
+              <p className="text-red-400 text-xs mt-1 font-bold">{linkError}</p>
             )}
-            {form.pdfUrl && !uploading && (
-              <p className="text-xs text-[#17d492] mt-1 font-bold">
-                ✅ PDF uploaded successfully
-              </p>
+            {isDriveValid && (
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-[#17d492] text-xs font-bold">
+                  ✓ Valid Google Drive link
+                </p>
+                <a
+                  href={form.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-[#17d492]/60 underline hover:text-[#17d492] transition"
+                >
+                  Test link →
+                </a>
+              </div>
             )}
           </div>
+
           <button
             type="submit"
-            disabled={uploading}
-            className="w-full bg-[#17d492] text-[#22323c] py-3 rounded-xl font-black hover:bg-[#14b87e] transition disabled:opacity-50"
+            disabled={!!linkError || !form.pdfUrl}
+            className="w-full bg-[#17d492] text-[#22323c] py-3 rounded-xl font-black hover:bg-[#14b87e] transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {uploading ? "Uploading..." : "Add PYQ"}
+            Add PYQ
           </button>
         </form>
       )}
 
+      {/* ── LIST VIEW ── */}
       {view === "list" && (
         <>
           {loading && (
@@ -1471,15 +1533,18 @@ function PYQDashboard({ adminKey }) {
               <div className="w-8 h-8 border-4 border-[#17d492] border-t-transparent rounded-full animate-spin" />
             </div>
           )}
+
           {!loading && pyqs.length === 0 && (
             <div className="text-center py-20 bg-[#1a2830] rounded-2xl border border-white/5">
-              <p className="text-4xl mb-3">📭</p>
-              <p className="text-slate-400 font-bold">No PYQs added yet.</p>
-              <p className="text-slate-600 text-sm mt-1">
+              <p className="text-slate-400 font-bold text-lg mb-1">
+                No PYQs added yet.
+              </p>
+              <p className="text-slate-600 text-sm">
                 Click "+ Add PYQ" to get started.
               </p>
             </div>
           )}
+
           {!loading && departments.length > 0 && (
             <div className="space-y-3">
               {departments.map((dept) => {
@@ -1495,7 +1560,11 @@ function PYQDashboard({ adminKey }) {
                       className="w-full flex items-center justify-between px-5 py-4 bg-[#1a2830] hover:bg-[#1e3040] transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-lg">🎓</span>
+                        <div className="w-8 h-8 rounded-xl bg-[#17d492]/10 border border-[#17d492]/20 flex items-center justify-center shrink-0">
+                          <span className="text-[#17d492] text-xs font-black">
+                            {dept.charAt(0)}
+                          </span>
+                        </div>
                         <span className="font-black text-white text-left">
                           {dept}
                         </span>
@@ -1503,10 +1572,11 @@ function PYQDashboard({ adminKey }) {
                           {items.length} {items.length === 1 ? "file" : "files"}
                         </span>
                       </div>
-                      <span className="text-slate-400 text-sm">
+                      <span className="text-slate-400 text-xs font-black">
                         {isOpen ? "▲" : "▼"}
                       </span>
                     </button>
+
                     {isOpen && (
                       <div className="bg-[#16252d] divide-y divide-white/5">
                         {items.map((pyq) => (
@@ -1515,9 +1585,11 @@ function PYQDashboard({ adminKey }) {
                             className="flex items-center justify-between px-5 py-3.5 hover:bg-[#1a2830]/60 transition-colors"
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <span className="text-red-400 text-base shrink-0">
-                                📄
-                              </span>
+                              <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                                <span className="text-red-400 text-[10px] font-black">
+                                  PDF
+                                </span>
+                              </div>
                               <div className="min-w-0">
                                 <p className="text-white text-sm font-bold truncate">
                                   {pyq.fileName}
