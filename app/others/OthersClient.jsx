@@ -232,7 +232,7 @@ const SECTIONS = [
     contact: false,
     badge: "New",
     instagramLink: "https://instagram.com/myraanshika",
-    telegramLink: "t.me/Myraanshika",
+    telegramLink: "https://t.me/Myraanshika",
     items: [],
   },
   {
@@ -391,7 +391,7 @@ export default function OthersClient() {
               <FaInstagram size={15} className="text-pink-400" /> Instagram
             </a>
             <a
-              href="t.me/Myraanshika"
+              href="https://t.me/Myraanshika"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-blue-400 transition"
