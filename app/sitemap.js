@@ -1,14 +1,36 @@
 export default function sitemap() {
   const baseUrl = "https://kapilstore.in";
+
   return [
-    { url: `${baseUrl}/`, lastModified: new Date() },
-    { url: `${baseUrl}/about`, lastModified: new Date() },
-    { url: `${baseUrl}/contact`, lastModified: new Date() },
-    { url: `${baseUrl}/groceries`, lastModified: new Date() },
-    { url: `${baseUrl}/groceries/snacks-drinks`, lastModified: new Date() },
-    { url: `${baseUrl}/groceries/beauty-personal-care`, lastModified: new Date() },
-    { url: `${baseUrl}/groceries/home-lifestyle`, lastModified: new Date() },
-    { url: `${baseUrl}/groceries/food-veg`, lastModified: new Date() },
-    { url: `${baseUrl}/groceries/food-nonveg`, lastModified: new Date() },
+    {
+      url: `${baseUrl}/`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 1.0,
+    },
+    {
+      url: `${baseUrl}/about`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/contact`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/cart`,
+      lastModified: new Date(),
+      changeFrequency: "never",
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/checkout`,
+      lastModified: new Date(),
+      changeFrequency: "never",
+      priority: 0.3,
+    },
   ];
 }
