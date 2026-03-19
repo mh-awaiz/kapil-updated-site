@@ -231,22 +231,9 @@ const SECTIONS = [
     borderColor: "border-amber-500/20",
     contact: false,
     badge: "New",
-    instagramLink: "https://www.instagram.com/YOUR_INSTAGRAM_HANDLE", 
-    telegramLink: "https://t.me/YOUR_TELEGRAM_CHANNEL",
-    items: [
-      "Leave Application Writing",
-      "Medical Leave Letter",
-      "Casual Leave Application",
-      "Duty Leave Application",
-      "Absence Explanation Letter",
-      "Late Coming Application",
-      "Early Leave Request",
-      "College Gate Pass Help",
-      "Hostel Leave Application",
-      "Internship / Training Letter",
-      "NOC Letter Help",
-      "Character Certificate Help",
-    ],
+    instagramLink: "https://instagram.com/myraanshika",
+    telegramLink: "t.me/Myraanshika",
+    items: [],
   },
   {
     id: "shoes-bags",
@@ -396,7 +383,7 @@ export default function OthersClient() {
               Find us on
             </p>
             <a
-              href="https://www.instagram.com/kapilstore.in"
+              href="https://instagram.com/myraanshika"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-pink-400 transition"
@@ -404,7 +391,7 @@ export default function OthersClient() {
               <FaInstagram size={15} className="text-pink-400" /> Instagram
             </a>
             <a
-              href="https://t.me/kapilstore"
+              href="t.me/Myraanshika"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs font-black text-slate-400 hover:text-blue-400 transition"

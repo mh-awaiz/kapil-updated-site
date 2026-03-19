@@ -21,6 +21,10 @@ const isMobile = () =>
   typeof window !== "undefined" &&
   /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+const isIOS = () =>
+  typeof window !== "undefined" &&
+  /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 export default function CheckoutPage() {
   const { cart, clearCart } = useCart();
   const router = useRouter();
@@ -80,22 +84,49 @@ export default function CheckoutPage() {
     return { ok: res.ok, data };
   };
 
+  // ── Universal UPI opener ────────────────────────────────────────
+  const openUPIApp = () => {
+    const upiParams = `pa=7982670413@sbi&pn=Sohan&am=${grandTotal}&cu=INR`;
+
+    if (isIOS()) {
+      // iOS doesn't support upi:// reliably — show QR instead
+      setShowRedirectSplash(false);
+      setShowQR(true);
+      return;
+    }
+
+    // Android: intent:// with empty package lets Android open the
+    // system UPI app chooser (works with every UPI app, not just GPay)
+    const intentLink =
+      `intent://pay?${upiParams}#Intent;` +
+      `scheme=upi;` +
+      `package=;` +
+      `S.browser_fallback_url=${encodeURIComponent("https://wa.me/917982670413")};` +
+      `end`;
+
+    window.location.href = intentLink;
+  };
+
   // ── Handle "Proceed to Pay" click ──────────────────────────────
   const handlePayClick = () => {
     if (!validateForm()) return;
 
     if (isMobile()) {
-      // Show reminder splash for 3.5s, then fire deep link
+      if (isIOS()) {
+        // iOS: skip splash, go straight to QR
+        setShowQR(true);
+        return;
+      }
+      // Android: show reminder splash, then fire intent deep link
       setShowRedirectSplash(true);
       setTimeout(() => {
-        const upiLink = `upi://pay?pa=7982670413@sbi&pn=Sohan&am=${grandTotal}&cu=INR`;
-        window.location.href = upiLink;
+        openUPIApp();
         setShowRedirectSplash(false);
         // Show UTR modal 2s after deep link fires (user is in UPI app by then)
         setTimeout(() => setShowMobileUTR(true), 2000);
       }, 4500);
     } else {
-      // Desktop: show QR modal as before
+      // Desktop: show QR modal
       setShowQR(true);
     }
   };
@@ -197,7 +228,7 @@ export default function CheckoutPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-[#17d492] animate-bounce [animation-delay:150ms]" />
             <span className="w-1.5 h-1.5 rounded-full bg-[#17d492] animate-bounce [animation-delay:300ms]" />
           </span>
-          Redirecting to UPI app
+          Opening UPI app chooser…
         </div>
       </div>
     </div>
@@ -270,11 +301,17 @@ export default function CheckoutPage() {
           {loading ? "Confirming..." : "I Have Paid – Confirm Order"}
         </button>
 
-        {/* Allow user to re-open UPI app if they haven't paid yet */}
+        {/* Re-open UPI app chooser */}
         <button
           onClick={() => {
-            const upiLink = `upi://pay?pa=7982670413@sbi&pn=Sohan&am=${grandTotal}&cu=INR`;
-            window.location.href = upiLink;
+            const upiParams = `pa=7982670413@sbi&pn=Sohan&am=${grandTotal}&cu=INR`;
+            const intentLink =
+              `intent://pay?${upiParams}#Intent;` +
+              `scheme=upi;` +
+              `package=;` +
+              `S.browser_fallback_url=${encodeURIComponent("https://wa.me/917982670413")};` +
+              `end`;
+            window.location.href = intentLink;
           }}
           className="w-full mt-3 py-2.5 rounded-xl font-bold text-sm text-[#17d492] border border-[#17d492]/30 hover:bg-[#17d492]/10 transition"
         >
@@ -490,7 +527,15 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-black mb-4 text-[#17d492]">
                   Important Delivery Information
                 </h2>
-                <p>-: 7982670413</p>
+                <p className="text-sm text-white/70 mb-3">
+                  WhatsApp:{" "}
+                  <a
+                    href="https://wa.me/917982670413"
+                    className="text-[#17d492] font-bold"
+                  >
+                    7982670413
+                  </a>
+                </p>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-3 text-sm text-white/70">
                     <FaCalendarCheck
@@ -548,8 +593,7 @@ export default function CheckoutPage() {
                       size={15}
                     />
                     <span>
-                      For urgent orders or anyone has only cash, you can
-                      WhatsApp us:{" "}
+                      For urgent orders or cash payments, WhatsApp us:{" "}
                       <a
                         href="https://wa.me/917982670413"
                         target="_blank"
