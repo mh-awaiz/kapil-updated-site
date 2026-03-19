@@ -1,7 +1,7 @@
 "use client";
 
 import { useCart } from "../context/CartContext.js";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -15,15 +15,6 @@ import {
   FaCalendarCheck,
 } from "react-icons/fa";
 import { MdQrCode2 } from "react-icons/md";
-
-// ── Device detection ────────────────────────────────────────────
-const isMobile = () =>
-  typeof window !== "undefined" &&
-  /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-const isIOS = () =>
-  typeof window !== "undefined" &&
-  /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 export default function CheckoutPage() {
   const { cart, clearCart } = useCart();
@@ -46,16 +37,11 @@ export default function CheckoutPage() {
   const [utrNumber, setUtrNumber] = useState("");
   const [utrError, setUtrError] = useState("");
 
-  // Mobile-only: after deep link opens UPI app, show UTR-only modal on return
-  const [showMobileUTR, setShowMobileUTR] = useState(false);
-  // Mobile-only: brief splash before redirecting to UPI app
-  const [showRedirectSplash, setShowRedirectSplash] = useState(false);
-
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
-  const deliveryCharge = Math.round(subtotal * 0.1); // 10% delivery charge for all
+  const deliveryCharge = Math.round(subtotal * 0.1);
   const grandTotal = subtotal + deliveryCharge;
 
   const validateForm = () => {
@@ -84,54 +70,13 @@ export default function CheckoutPage() {
     return { ok: res.ok, data };
   };
 
-  // ── Universal UPI opener ────────────────────────────────────────
-  const openUPIApp = () => {
-    const upiParams = `pa=7982670413@sbi&pn=Sohan&am=${grandTotal}&cu=INR`;
-
-    if (isIOS()) {
-      // iOS doesn't support upi:// reliably — show QR instead
-      setShowRedirectSplash(false);
-      setShowQR(true);
-      return;
-    }
-
-    // Android: intent:// with empty package lets Android open the
-    // system UPI app chooser (works with every UPI app, not just GPay)
-    const intentLink =
-      `intent://pay?${upiParams}#Intent;` +
-      `scheme=upi;` +
-      `package=;` +
-      `S.browser_fallback_url=${encodeURIComponent("https://wa.me/917982670413")};` +
-      `end`;
-
-    window.location.href = intentLink;
-  };
-
-  // ── Handle "Proceed to Pay" click ──────────────────────────────
+  // ── "Proceed to Pay" — just show the QR modal ──────────────────
   const handlePayClick = () => {
     if (!validateForm()) return;
-
-    if (isMobile()) {
-      if (isIOS()) {
-        // iOS: skip splash, go straight to QR
-        setShowQR(true);
-        return;
-      }
-      // Android: show reminder splash, then fire intent deep link
-      setShowRedirectSplash(true);
-      setTimeout(() => {
-        openUPIApp();
-        setShowRedirectSplash(false);
-        // Show UTR modal 2s after deep link fires (user is in UPI app by then)
-        setTimeout(() => setShowMobileUTR(true), 2000);
-      }, 4500);
-    } else {
-      // Desktop: show QR modal
-      setShowQR(true);
-    }
+    setShowQR(true);
   };
 
-  // ── Shared UTR confirm logic ────────────────────────────────────
+  // ── UTR confirm logic ───────────────────────────────────────────
   const handleUTRConfirm = async () => {
     if (!utrNumber.trim()) {
       setUtrError("Please enter your UTR / Transaction ID");
@@ -150,7 +95,6 @@ export default function CheckoutPage() {
     setLoading(false);
     if (ok) {
       setShowQR(false);
-      setShowMobileUTR(false);
       setPlacedOrderId(data.orderId);
       setSuccess(true);
       clearCart();
@@ -198,141 +142,7 @@ export default function CheckoutPage() {
     );
   }
 
-  // ── Mobile Redirect Splash ──────────────────────────────────────
-  const RedirectSplash = () => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#1a2830] border border-[#17d492]/30 rounded-2xl w-full max-w-xs p-7 text-center shadow-2xl">
-        {/* Animated icon */}
-        <div className="relative mx-auto mb-5 w-16 h-16">
-          <div className="absolute inset-0 rounded-full bg-[#17d492]/20 animate-ping" />
-          <div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-[#17d492]/10 border border-[#17d492]/30">
-            <MdQrCode2 size={30} className="text-[#17d492]" />
-          </div>
-        </div>
-
-        <h3 className="text-white font-black text-lg leading-snug mb-2">
-          Note your Transaction ID
-        </h3>
-        <p className="text-slate-400 text-sm leading-relaxed mb-6">
-          After paying, make sure to{" "}
-          <span className="text-[#17d492] font-bold">
-            copy the Transaction ID
-          </span>{" "}
-          from your UPI app — you'll need it to verify your payment.
-        </p>
-
-        {/* Animated redirecting bar */}
-        <div className="flex items-center justify-center gap-2 text-slate-500 text-xs font-semibold tracking-widest uppercase">
-          <span className="inline-flex gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#17d492] animate-bounce [animation-delay:0ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-[#17d492] animate-bounce [animation-delay:150ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-[#17d492] animate-bounce [animation-delay:300ms]" />
-          </span>
-          Opening UPI app chooser…
-        </div>
-      </div>
-    </div>
-  );
-
-  const MobileUTRModal = () => (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-[#1a2830] border border-[#17d492]/30 rounded-t-3xl w-full max-w-lg p-6 pb-10 shadow-2xl">
-        {/* Handle bar */}
-        <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
-
-        <div className="flex items-center gap-3 mb-5">
-          <FaCheckCircle size={24} className="text-[#17d492]" />
-          <div>
-            <h3 className="font-black text-white text-lg">Payment Done?</h3>
-            <p className="text-slate-400 text-xs">
-              Enter your transaction ID to confirm your order
-            </p>
-          </div>
-        </div>
-
-        {/* Amount reminder */}
-        <div className="bg-[#17d492]/10 border border-[#17d492]/20 rounded-xl px-4 py-3 mb-5 flex items-center justify-between">
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-            Amount Paid
-          </p>
-          <p className="text-2xl font-black text-[#17d492]">₹{grandTotal}</p>
-        </div>
-
-        {/* UPI ID reminder */}
-        <div className="mb-5 bg-[#22323c] border border-white/10 rounded-xl px-4 py-3 text-center">
-          <p className="text-xs text-slate-500 mb-1">Paid to UPI ID</p>
-          <p className="text-sm font-black text-white tracking-wide">
-            7982670413@sbi
-          </p>
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-xs font-bold text-[#17d492] uppercase tracking-widest mb-2">
-            UTR / Transaction ID *
-          </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="e.g. 423456789012"
-            value={utrNumber}
-            onChange={(e) => {
-              setUtrNumber(e.target.value);
-              setUtrError("");
-            }}
-            className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition text-white text-sm"
-            autoFocus
-          />
-          {utrError && <p className="text-red-400 text-xs mt-1">{utrError}</p>}
-          <p className="text-slate-600 text-xs mt-1">
-            Find this in your UPI app after payment — it's the 12-digit
-            reference number.
-          </p>
-        </div>
-
-        <button
-          onClick={handleUTRConfirm}
-          disabled={loading}
-          className={`w-full py-3.5 rounded-xl font-black transition text-[#22323c] ${
-            loading
-              ? "bg-[#17d492]/50 cursor-not-allowed"
-              : "bg-[#17d492] hover:bg-[#14b87e] active:scale-95"
-          }`}
-        >
-          {loading ? "Confirming..." : "I Have Paid – Confirm Order"}
-        </button>
-
-        {/* Re-open UPI app chooser */}
-        <button
-          onClick={() => {
-            const upiParams = `pa=7982670413@sbi&pn=Sohan&am=${grandTotal}&cu=INR`;
-            const intentLink =
-              `intent://pay?${upiParams}#Intent;` +
-              `scheme=upi;` +
-              `package=;` +
-              `S.browser_fallback_url=${encodeURIComponent("https://wa.me/917982670413")};` +
-              `end`;
-            window.location.href = intentLink;
-          }}
-          className="w-full mt-3 py-2.5 rounded-xl font-bold text-sm text-[#17d492] border border-[#17d492]/30 hover:bg-[#17d492]/10 transition"
-        >
-          Open UPI App Again
-        </button>
-
-        <button
-          onClick={() => {
-            setShowMobileUTR(false);
-            setUtrNumber("");
-            setUtrError("");
-          }}
-          className="w-full mt-2 py-2.5 rounded-xl text-xs text-slate-500 hover:text-slate-300 transition"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-
-  // ── Desktop QR Modal ────────────────────────────────────────────
+  // ── QR Modal (shown on all devices) ────────────────────────────
   const UPIModal = () => (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
       <div className="bg-[#1a2830] border border-[#17d492]/30 rounded-2xl w-full max-w-sm p-6 relative shadow-2xl">
@@ -436,8 +246,6 @@ export default function CheckoutPage() {
   return (
     <>
       {showQR && <UPIModal />}
-      {showRedirectSplash && <RedirectSplash />}
-      {showMobileUTR && <MobileUTRModal />}
 
       <div className="min-h-screen bg-[#22323c] text-[#f5f5f5] py-10 px-4 pt-28">
         <div className="max-w-6xl mx-auto">
