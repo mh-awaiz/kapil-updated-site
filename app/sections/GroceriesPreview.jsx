@@ -133,7 +133,7 @@ export default function GroceriesPreview() {
 
         <div className="mt-10 text-center">
           <Link
-            href="/grocery"
+            href="/groceries"
             className="inline-flex items-center gap-2 bg-green-500 text-white px-8 py-3.5 rounded-xl font-black hover:bg-green-600 hover:-translate-y-0.5 transition-all shadow-lg"
           >
             Shop All Groceries <FaArrowRight size={12} />
