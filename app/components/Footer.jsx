@@ -105,7 +105,7 @@ const Footer = () => {
           <p className="flex items-center gap-2">
             Engineered by
             <a
-              href="https://mohammedawaiz.vercel.app/"
+              href="https://www.linkedin.com/in/-mohammed-awaiz/"
               target="_blank"
               className="text-[#17d492] hover:underline underline-offset-4"
             >

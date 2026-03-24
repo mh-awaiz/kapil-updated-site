@@ -97,7 +97,7 @@ export default function StationeryPreview() {
           {STATIONERY_SUBS.map((sub) => (
             <Link
               key={sub.id}
-              href={`/stationery/${sub.id}`}
+              href={`/stationery`}
               className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-gradient-to-br ${sub.color} border ${sub.border}
                 hover:scale-105 transition-transform duration-200 text-center`}
             >
