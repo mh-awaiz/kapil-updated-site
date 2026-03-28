@@ -3,7 +3,7 @@ import { User, Calendar, BookOpen, Phone, PenTool, ShoppingBag, ArrowRight } fro
 
 const AboutSection = () => {
   return (
-    <section id="aboutme" className="bg-[#22323c] py-24 px-4 relative overflow-hidden">
+    <section id="aboutme" className="bg-[#22323c] py-24 px-4 relative overflow-hidden ">
       {/* Background Accent - matching the Hero's glow */}
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#17d492]/5 blur-[100px] rounded-full -ml-40 -mb-40"></div>
 
