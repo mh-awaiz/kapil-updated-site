@@ -8,7 +8,7 @@ const OrderSchema = new mongoose.Schema(
     customer: {
       name: { type: String, required: true },
       phone: { type: String, required: true },
-      email: { type: String, required: true },
+      email: { type: String, default: "" },
       address: { type: String, required: true },
       isJamiaStudent: { type: Boolean, required: true },
       timeSlot: { type: String, default: "" },
@@ -24,22 +24,32 @@ const OrderSchema = new mongoose.Schema(
       },
     ],
 
-    category: { type: String, default: "stationery" },
+    category: {
+      type: String,
+      enum: ["stationery", "groceries", "mixed"],
+      default: "stationery",
+    },
+
     totalAmount: { type: Number, required: true },
     deliveryCharge: { type: Number, required: true },
 
-    // Payment
-    paymentMethod: { type: String, default: "upi" }, // upi | cod | razorpay
+    paymentMethod: {
+      type: String,
+      enum: ["razorpay", "upi", "cod"],
+      default: "razorpay",
+    },
+
     paymentStatus: {
       type: String,
       enum: ["pending", "pending_verification", "paid", "failed"],
       default: "pending_verification",
     },
-    utrNumber: { type: String, default: null }, // UTR / Transaction ID from UPI payment
+
+    utrNumber: { type: String, default: null },
     razorpayOrderId: { type: String, default: null },
     razorpayPaymentId: { type: String, default: null },
 
-    // Live Tracking
+    // ✅ Order status for live tracking
     status: {
       type: String,
       enum: [
@@ -52,18 +62,24 @@ const OrderSchema = new mongoose.Schema(
       ],
       default: "placed",
     },
+
     trackingUpdates: [
       {
-        status: String,
-        message: String,
+        status: { type: String },
+        message: { type: String },
         timestamp: { type: Date, default: Date.now },
-        location: { lat: Number, lng: Number },
+        location: {
+          lat: { type: Number, default: null },
+          lng: { type: Number, default: null },
+        },
       },
     ],
+
     deliveryLocation: {
       lat: { type: Number, default: null },
       lng: { type: Number, default: null },
     },
+
     estimatedDelivery: { type: Date, default: null },
     timestamp: { type: Date, default: Date.now },
   },

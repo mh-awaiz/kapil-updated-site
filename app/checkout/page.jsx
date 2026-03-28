@@ -2,10 +2,8 @@
 
 import { useCart } from "../context/CartContext.js";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import Script from "next/script";
 import {
-  FaTimes,
   FaCheckCircle,
   FaWhatsapp,
   FaClock,
@@ -13,29 +11,24 @@ import {
   FaMapMarkerAlt,
   FaBolt,
   FaCalendarCheck,
+  FaLock,
 } from "react-icons/fa";
-import { MdQrCode2 } from "react-icons/md";
+import { MdPayment } from "react-icons/md";
 
 export default function CheckoutPage() {
   const { cart, clearCart } = useCart();
-  const router = useRouter();
-  const { data: session } = useSession();
 
   const [form, setForm] = useState({
-    name: session?.user?.name || "",
-    phone: session?.user?.phone || "",
-    email: session?.user?.email || "",
+    name: "",
+    phone: "",
+    email: "",
     address: "",
   });
   const [isJamiaStudent, setIsJamiaStudent] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState("upi");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState("");
-
-  const [showQR, setShowQR] = useState(false);
-  const [utrNumber, setUtrNumber] = useState("");
-  const [utrError, setUtrError] = useState("");
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -45,69 +38,140 @@ export default function CheckoutPage() {
   const grandTotal = subtotal + deliveryCharge;
 
   const validateForm = () => {
-    if (!form.name || !form.phone || !form.address) {
-      alert("Please fill all required fields");
+    if (!form.name.trim()) {
+      alert("Please enter your full name");
+      return false;
+    }
+    if (!form.phone.trim()) {
+      alert("Please enter your phone number");
+      return false;
+    }
+    if (!form.address.trim()) {
+      alert("Please enter your delivery address");
+      return false;
+    }
+    if (isJamiaStudent === null) {
+      alert("Please select whether you are a Jamia student");
       return false;
     }
     return true;
   };
 
-  const placeOrder = async (extraFields = {}) => {
-    const res = await fetch("/api/order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customer: { ...form, isJamiaStudent },
-        cart,
-        total: grandTotal,
-        deliveryCharge,
-        paymentMethod,
-        userId: session?.user?.id || null,
-        ...extraFields,
-      }),
-    });
-    const data = await res.json();
-    return { ok: res.ok, data };
-  };
-
-  // ── "Proceed to Pay" — just show the QR modal ──────────────────
-  const handlePayClick = () => {
+  const handlePayClick = async () => {
     if (!validateForm()) return;
-    setShowQR(true);
-  };
+    if (!razorpayLoaded) {
+      alert("Payment gateway is still loading, please try again.");
+      return;
+    }
 
-  // ── UTR confirm logic ───────────────────────────────────────────
-  const handleUTRConfirm = async () => {
-    if (!utrNumber.trim()) {
-      setUtrError("Please enter your UTR / Transaction ID");
-      return;
-    }
-    if (utrNumber.trim().length < 6) {
-      setUtrError("UTR number seems too short. Please check.");
-      return;
-    }
-    setUtrError("");
     setLoading(true);
-    const { ok, data } = await placeOrder({
-      paymentStatus: "pending_verification",
-      utrNumber: utrNumber.trim(),
-    });
-    setLoading(false);
-    if (ok) {
-      setShowQR(false);
-      setPlacedOrderId(data.orderId);
-      setSuccess(true);
-      clearCart();
-      setForm({ name: "", phone: "", email: "", address: "" });
-    } else {
-      alert(data.message || "Order failed. Please try again.");
+
+    try {
+      const orderRes = await fetch("/api/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: { ...form, isJamiaStudent },
+          cart,
+          total: grandTotal,
+          deliveryCharge,
+          paymentMethod: "razorpay",
+          paymentStatus: "pending_verification",
+        }),
+      });
+
+      const orderData = await orderRes.json();
+
+      if (!orderRes.ok) {
+        throw new Error(orderData.message || "Failed to create order");
+      }
+
+      const internalOrderId = orderData.orderId;
+
+      const rzpRes = await fetch("/api/payment/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: grandTotal }),
+      });
+
+      const rzpData = await rzpRes.json();
+
+      if (!rzpRes.ok) {
+        throw new Error(rzpData.error || "Failed to initiate payment");
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: rzpData.amount,
+        currency: rzpData.currency,
+        name: "Kapil Store",
+        description: "Stationery Order",
+        image: "/image.png",
+        order_id: rzpData.id,
+        prefill: {
+          name: form.name,
+          email: form.email,
+          contact: form.phone,
+        },
+        notes: {
+          address: form.address,
+          internalOrderId,
+        },
+        theme: { color: "#17d492" },
+
+        handler: async (response) => {
+          const verifyRes = await fetch("/api/payment/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderId: internalOrderId,
+            }),
+          });
+
+          const verifyData = await verifyRes.json();
+
+          if (verifyRes.ok && verifyData.success) {
+            setPlacedOrderId(internalOrderId);
+            setSuccess(true);
+            clearCart();
+            setForm({ name: "", phone: "", email: "", address: "" });
+          } else {
+            alert(
+              "Payment verification failed. Please contact support with Payment ID: " +
+                response.razorpay_payment_id,
+            );
+          }
+
+          setLoading(false);
+        },
+
+        modal: {
+          ondismiss: () => setLoading(false),
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+
+      rzp.on("payment.failed", (response) => {
+        alert(`Payment failed: ${response.error.description}`);
+        setLoading(false);
+      });
+
+      rzp.open();
+    } catch (err) {
+      console.error("Checkout error:", err);
+      alert(err.message || "Something went wrong. Please try again.");
+      setLoading(false);
     }
   };
 
-  // ── Success Screen ──────────────────────────────────────────────
+  //Success Screen
   if (success) {
     return (
-      <div className="min-h-screen bg-[#22323c] text-[#f5f5f5] flex items-center justify-center px-4 pt-24">
+      <div className="min-h-screen bg-[#22323c] text-[#f5f5f5] flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <FaCheckCircle size={64} className="text-[#17d492] mx-auto mb-4" />
           <h2 className="text-2xl font-black text-[#17d492] mb-2">
@@ -117,11 +181,11 @@ export default function CheckoutPage() {
             Order ID:{" "}
             <span className="font-mono text-white">{placedOrderId}</span>
           </p>
-          <p className="text-yellow-400 text-sm mb-2 font-semibold">
-            Payment will be verified within 30 minutes.
+          <p className="text-green-400 text-sm mb-2 font-semibold">
+            Payment confirmed successfully.
           </p>
           <p className="text-white/50 text-sm mb-8">
-            We'll contact you soon to confirm.
+            We'll contact you soon to confirm delivery.
           </p>
           <div className="flex flex-col gap-3">
             <a
@@ -142,118 +206,22 @@ export default function CheckoutPage() {
     );
   }
 
-  // ── QR Modal (shown on all devices) ────────────────────────────
-  const UPIModal = () => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-[#1a2830] border border-[#17d492]/30 rounded-2xl w-full max-w-sm p-6 relative shadow-2xl">
-        <button
-          onClick={() => {
-            setShowQR(false);
-            setUtrNumber("");
-            setUtrError("");
-          }}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
-        >
-          <FaTimes size={18} />
-        </button>
-
-        <div className="flex items-center gap-3 mb-5">
-          <MdQrCode2 size={28} className="text-[#17d492]" />
-          <div>
-            <h3 className="font-black text-white text-lg">Pay via UPI</h3>
-            <p className="text-slate-400 text-xs">
-              Scan the QR code below to pay
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-[#17d492]/10 border border-[#17d492]/20 rounded-xl px-4 py-3 mb-5 text-center">
-          <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">
-            Amount to Pay
-          </p>
-          <p className="text-3xl font-black text-[#17d492]">₹{grandTotal}</p>
-        </div>
-
-        <div className="flex flex-col items-center mb-5">
-          <div className="bg-white p-3 rounded-xl mb-3">
-            <img
-              src="/upi-qr.jpeg"
-              alt="UPI QR Code"
-              className="w-48 h-48 object-contain"
-              onError={(e) => {
-                e.target.style.display = "none";
-                e.target.nextSibling.style.display = "flex";
-              }}
-            />
-            <div
-              className="w-48 h-48 bg-gray-100 rounded-lg items-center justify-center flex-col gap-2 hidden"
-              style={{ display: "none" }}
-            >
-              <MdQrCode2 size={64} className="text-gray-400" />
-              <p className="text-xs text-gray-500 text-center px-2">
-                Add your QR image at /public/upi-qr.jpeg
-              </p>
-            </div>
-          </div>
-          <p className="text-xs text-slate-500 text-center">
-            Open any UPI app (GPay, PhonePe, Paytm) and scan
-          </p>
-          <div className="mt-3 w-full bg-[#22323c] border border-white/10 rounded-xl px-4 py-2.5 text-center">
-            <p className="text-xs text-slate-500 mb-1">Or pay to UPI ID</p>
-            <p className="text-sm font-black text-white tracking-wide">
-              7982670413@sbi
-            </p>
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-xs font-bold text-[#17d492] uppercase tracking-widest mb-2">
-            Enter UTR / Transaction ID *
-          </label>
-          <input
-            type="text"
-            placeholder="e.g. 423456789012"
-            value={utrNumber}
-            onChange={(e) => {
-              setUtrNumber(e.target.value);
-              setUtrError("");
-            }}
-            className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition text-white text-sm"
-          />
-          {utrError && <p className="text-red-400 text-xs mt-1">{utrError}</p>}
-          <p className="text-slate-600 text-xs mt-1">
-            Find this in your UPI app after payment — it's the 12-digit
-            reference number.
-          </p>
-        </div>
-
-        <button
-          onClick={handleUTRConfirm}
-          disabled={loading}
-          className={`w-full py-3.5 rounded-xl font-black transition text-[#22323c] ${
-            loading
-              ? "bg-[#17d492]/50 cursor-not-allowed"
-              : "bg-[#17d492] hover:bg-[#14b87e] active:scale-95"
-          }`}
-        >
-          {loading ? "Confirming..." : "I Have Paid – Confirm Order"}
-        </button>
-      </div>
-    </div>
-  );
-
-  // ── Main Checkout ───────────────────────────────────────────────
   return (
     <>
-      {showQR && <UPIModal />}
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        onLoad={() => setRazorpayLoaded(true)}
+        strategy="afterInteractive"
+      />
 
       <div className="min-h-screen bg-[#22323c] text-[#f5f5f5] py-10 px-4 pt-28">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl font-black mb-8 text-[#17d492]">Checkout</h1>
 
           <div className="grid md:grid-cols-2 gap-8">
-            {/* LEFT - Delivery Details */}
+            {/* LEFT */}
             <div className="space-y-6">
+              {/* Delivery Details */}
               <div className="bg-[#1a2830] rounded-2xl p-6 border border-white/5">
                 <h2 className="text-lg font-black mb-4 text-[#17d492]">
                   Delivery Details
@@ -265,7 +233,6 @@ export default function CheckoutPage() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition"
-                    required
                   />
                   <input
                     type="tel"
@@ -275,11 +242,10 @@ export default function CheckoutPage() {
                       setForm({ ...form, phone: e.target.value })
                     }
                     className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition"
-                    required
                   />
                   <input
                     type="email"
-                    placeholder="Email"
+                    placeholder="Email (for order confirmation)"
                     value={form.email}
                     onChange={(e) =>
                       setForm({ ...form, email: e.target.value })
@@ -287,7 +253,7 @@ export default function CheckoutPage() {
                     className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition"
                   />
 
-                  {/* Jamia Student */}
+                  {/* Jamia Student Toggle */}
                   <div>
                     <p className="mb-2 font-bold text-[#17d492] text-sm">
                       Are you a Jamia student? *
@@ -325,93 +291,91 @@ export default function CheckoutPage() {
                       setForm({ ...form, address: e.target.value })
                     }
                     className="w-full px-4 py-3 rounded-xl bg-[#22323c] border border-white/10 focus:outline-none focus:border-[#17d492] transition"
-                    required
                   />
                 </div>
               </div>
 
-              {/* Important Delivery Information */}
+              {/* Delivery Info */}
               <div className="bg-[#1a2830] rounded-2xl p-6 border border-[#17d492]/20">
                 <h2 className="text-lg font-black mb-4 text-[#17d492]">
                   Important Delivery Information
                 </h2>
-                <p className="text-sm text-white/70 mb-3">
-                  WhatsApp:{" "}
-                  <a
-                    href="https://wa.me/917982670413"
-                    className="text-[#17d492] font-bold"
-                  >
-                    7982670413
-                  </a>
-                </p>
                 <ul className="space-y-3">
-                  <li className="flex items-start gap-3 text-sm text-white/70">
-                    <FaCalendarCheck
-                      className="text-[#17d492] mt-0.5 shrink-0"
-                      size={15}
-                    />
-                    <span>
-                      Delivery available everyday —{" "}
-                      <span className="text-white font-semibold">
-                        8:00 AM to 12:00 AM
-                      </span>
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3 text-sm text-white/70">
-                    <FaBolt
-                      className="text-[#17d492] mt-0.5 shrink-0"
-                      size={15}
-                    />
-                    <span>
-                      Your order will be delivered within{" "}
-                      <span className="text-white font-semibold">
-                        45–90 minutes
-                      </span>
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3 text-sm text-white/70">
-                    <FaPhoneAlt
-                      className="text-[#17d492] mt-0.5 shrink-0"
-                      size={15}
-                    />
-                    <span>
-                      You will receive a{" "}
-                      <span className="text-white font-semibold">
-                        confirmation mail
-                      </span>{" "}
-                      before delivery
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3 text-sm text-white/70">
-                    <FaMapMarkerAlt
-                      className="text-[#17d492] mt-0.5 shrink-0"
-                      size={15}
-                    />
-                    <span>
-                      Please mention your{" "}
-                      <span className="text-white font-semibold">
-                        exact location
-                      </span>{" "}
-                      while placing the order
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3 text-sm text-white/70">
-                    <FaWhatsapp
-                      className="text-[#17d492] mt-0.5 shrink-0"
-                      size={15}
-                    />
-                    <span>
-                      For urgent orders or cash payments, WhatsApp us:{" "}
-                      <a
-                        href="https://wa.me/917982670413"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#17d492] font-black hover:underline"
-                      >
-                        7982670413
-                      </a>
-                    </span>
-                  </li>
+                  {[
+                    {
+                      icon: FaCalendarCheck,
+                      text: (
+                        <>
+                          Delivery available everyday —{" "}
+                          <span className="text-white font-semibold">
+                            8:00 AM to 12:00 AM
+                          </span>
+                        </>
+                      ),
+                    },
+                    {
+                      icon: FaBolt,
+                      text: (
+                        <>
+                          Delivered within{" "}
+                          <span className="text-white font-semibold">
+                            45–90 minutes
+                          </span>
+                        </>
+                      ),
+                    },
+                    {
+                      icon: FaPhoneAlt,
+                      text: (
+                        <>
+                          You'll receive a{" "}
+                          <span className="text-white font-semibold">
+                            confirmation mail
+                          </span>{" "}
+                          before delivery
+                        </>
+                      ),
+                    },
+                    {
+                      icon: FaMapMarkerAlt,
+                      text: (
+                        <>
+                          Mention your{" "}
+                          <span className="text-white font-semibold">
+                            exact location
+                          </span>{" "}
+                          in the address
+                        </>
+                      ),
+                    },
+                    {
+                      icon: FaWhatsapp,
+                      text: (
+                        <>
+                          For urgent orders, WhatsApp:{" "}
+                          <a
+                            href="https://wa.me/917982670413"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#17d492] font-black hover:underline"
+                          >
+                            7982670413
+                          </a>
+                        </>
+                      ),
+                    },
+                  ].map(({ icon: Icon, text }, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-3 text-sm text-white/70"
+                    >
+                      <Icon
+                        className="text-[#17d492] mt-0.5 shrink-0"
+                        size={15}
+                      />
+                      <span>{text}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
 
@@ -420,44 +384,22 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-black mb-4 text-[#17d492]">
                   Payment Method
                 </h2>
-                <div className="space-y-3">
-                  {/* COD — Disabled */}
-                  <div className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed select-none">
-                    <FaTimes className="text-slate-500 shrink-0" size={20} />
-                    <div className="flex-1">
-                      <p className="font-bold text-sm text-slate-500">
-                        Cash on Delivery
-                      </p>
-                      <p className="text-xs text-slate-600">
-                        Currently unavailable
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-slate-700 text-slate-400 px-2 py-1 rounded-lg">
-                      Unavailable
-                    </span>
+                <div className="flex items-center gap-4 p-4 rounded-xl border border-[#17d492] bg-[#17d492]/10">
+                  <MdPayment size={24} className="text-[#17d492] shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-white">
+                      Razorpay — UPI / Cards / Net Banking / Wallets
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      GPay, PhonePe, Paytm, Credit/Debit Cards & more
+                    </p>
                   </div>
-
-                  {/* UPI — Active */}
-                  <label className="flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition border-[#17d492] bg-[#17d492]/10">
-                    <input
-                      type="radio"
-                      name="payment"
-                      className="hidden"
-                      defaultChecked
-                      onChange={() => setPaymentMethod("upi")}
-                    />
-                    <MdQrCode2 size={24} className="text-[#17d492] shrink-0" />
-                    <div className="flex-1">
-                      <p className="font-bold text-sm text-white">
-                        Pay via UPI / QR
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        GPay, PhonePe, Paytm & all UPI apps
-                      </p>
-                    </div>
-                    <div className="w-4 h-4 rounded-full border-2 border-[#17d492] bg-[#17d492] shrink-0" />
-                  </label>
+                  <div className="w-4 h-4 rounded-full border-2 border-[#17d492] bg-[#17d492] shrink-0" />
                 </div>
+                <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                  <FaLock size={10} />
+                  256-bit SSL secured payment powered by Razorpay
+                </p>
               </div>
             </div>
 
@@ -468,19 +410,23 @@ export default function CheckoutPage() {
               </h2>
 
               <div className="space-y-2 mb-4">
-                {cart.map((item) => (
-                  <div
-                    key={`${item.title}-${item.quantity}`}
-                    className="flex justify-between text-sm"
-                  >
-                    <span className="text-white/70">
-                      {item.title} × {item.quantity}
-                    </span>
-                    <span className="text-white">
-                      ₹{item.price * item.quantity}
-                    </span>
-                  </div>
-                ))}
+                {cart.length === 0 ? (
+                  <p className="text-slate-400 text-sm">Your cart is empty.</p>
+                ) : (
+                  cart.map((item) => (
+                    <div
+                      key={`${item.title}-${item.cartItemId}`}
+                      className="flex justify-between text-sm"
+                    >
+                      <span className="text-white/70">
+                        {item.title} × {item.quantity}
+                      </span>
+                      <span className="text-white">
+                        ₹{item.price * item.quantity}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
 
               <div className="border-t border-white/10 pt-4 space-y-2 text-sm">
@@ -489,7 +435,7 @@ export default function CheckoutPage() {
                   <span>₹{subtotal}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400 flex items-center gap-1">
+                  <span className="text-slate-400">
                     Delivery{" "}
                     <span className="text-xs text-slate-600">(10%)</span>
                   </span>
@@ -501,7 +447,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Delivery timing reminder */}
               <div className="mt-4 flex items-center gap-2 bg-[#17d492]/5 border border-[#17d492]/15 rounded-xl px-4 py-3">
                 <FaClock size={13} className="text-[#17d492] shrink-0" />
                 <p className="text-xs text-slate-400">
@@ -515,16 +460,16 @@ export default function CheckoutPage() {
                 onClick={handlePayClick}
                 disabled={loading || cart.length === 0}
                 className={`w-full mt-5 py-4 rounded-xl font-black transition text-[#22323c] ${
-                  loading
+                  loading || cart.length === 0
                     ? "bg-[#17d492]/50 cursor-not-allowed"
                     : "bg-[#17d492] hover:bg-[#14b87e] hover:-translate-y-0.5 active:scale-95 shadow-[0_10px_20px_-10px_rgba(23,212,146,0.4)]"
                 }`}
               >
-                {loading ? "Processing..." : "Proceed to Pay"}
+                {loading ? "Processing..." : `Pay ₹${grandTotal} Securely`}
               </button>
 
-              <p className="text-xs text-center mt-3 text-slate-600">
-                Secure Checkout • UPI Payment
+              <p className="text-xs text-center mt-3 text-slate-600 flex items-center justify-center gap-1">
+                <FaLock size={9} /> Secure Checkout powered by Razorpay
               </p>
             </div>
           </div>

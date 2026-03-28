@@ -3,7 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
-export const authOptions = {
+const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -12,22 +12,35 @@ export const authOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      await connectDB();
-      const existing = await User.findOne({ email: user.email });
-      if (!existing) {
-        await User.create({ name: user.name, email: user.email, image: user.image });
+      try {
+        await connectDB();
+        const existing = await User.findOne({ email: user.email });
+        if (!existing) {
+          await User.create({
+            name: user.name,
+            email: user.email,
+            image: user.image,
+          });
+        }
+        return true;
+      } catch (err) {
+        console.error("signIn callback error:", err);
+        return false;
       }
-      return true;
     },
     async session({ session }) {
-      await connectDB();
-      const dbUser = await User.findOne({ email: session.user.email });
-      if (dbUser) {
-        session.user.id = dbUser._id.toString();
-        session.user.role = dbUser.role;
-        session.user.phone = dbUser.phone;
-        session.user.address = dbUser.address;
-        session.user.isJamiaStudent = dbUser.isJamiaStudent;
+      try {
+        await connectDB();
+        const dbUser = await User.findOne({ email: session.user.email });
+        if (dbUser) {
+          session.user.id = dbUser._id.toString();
+          session.user.role = dbUser.role;
+          session.user.phone = dbUser.phone;
+          session.user.address = dbUser.address;
+          session.user.isJamiaStudent = dbUser.isJamiaStudent;
+        }
+      } catch (err) {
+        console.error("session callback error:", err);
       }
       return session;
     },
@@ -37,4 +50,5 @@ export const authOptions = {
 };
 
 const handler = NextAuth(authOptions);
+
 export { handler as GET, handler as POST };
