@@ -378,8 +378,8 @@ const Hero = () => {
             </h1>
 
             <p className="mt-2 text-sm md:text-[18px] font-medium text-slate-300">
-              Food • groceries • Assignments • PYQs • Stationery • Cosmetics •
-              etc.
+              100% Halal Food • groceries • Assignments • PYQs • Stationery •
+              Cosmetics • etc.
             </p>
             <p className="mt-1 text-xl md:text-2xl font-medium text-slate-300">
               by Kapil Gupta
