@@ -219,11 +219,11 @@ const OTHERS_SECTIONS = [
         href: "/others#shoes-bags",
         Icon: FaShoppingBasket,
       },
-      {
-        label: "Chemist & Cosmetics",
-        href: "/others#chemist",
-        Icon: FaEllipsisH,
-      },
+      // {
+      //   label: "Chemist & Cosmetics",
+      //   href: "/others#chemist",
+      //   Icon: FaEllipsisH,
+      // },
       { label: "PYQs", href: "/pyqs", Icon: MdMenuBook },
     ],
   },
