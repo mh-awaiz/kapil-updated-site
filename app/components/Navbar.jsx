@@ -67,12 +67,12 @@ const TOP_NAV = [
     // Icon: FaChalkboardTeacher,
     href: "/others#tuition",
   },
-  {
-    id: "earn-rent",
-    label: "Student Earn and Rent Hub ",
-    // Icon: FaHome,
-    href: "/others#earn-rent",
-  },
+  // {
+  //   id: "earn-rent",
+  //   label: "Student Earn and Rent Hub ",
+  //   // Icon: FaHome,
+  //   href: "/others#earn-rent",
+  // },
   { id: "others", label: "Others", Icon: FaEllipsisH, href: "/others" },
 ];
 
@@ -142,33 +142,33 @@ const OTHERS_SECTIONS = [
       { label: "Thesis Help", href: "/others#thesis", Icon: FaBook },
     ],
   },
-  {
-    title: "Earn & Rent Hub",
-    TitleIcon: FaHome,
-    links: [
-      { label: "PG / Rooms on Rent", href: "/others#pg-rooms", Icon: FaHome },
-      {
-        label: "Calculators on Rent",
-        href: "/others#calculators-rent",
-        Icon: FaCalculator,
-      },
-      {
-        label: "Electronics on Rent",
-        href: "/others#electronics-rent",
-        Icon: FaLaptop,
-      },
-      {
-        label: "Room Essentials on Rent",
-        href: "/others#room-essentials",
-        Icon: MdOutlineOtherHouses,
-      },
-      {
-        label: "Daily Use Items on Rent",
-        href: "/others#daily-items-rent",
-        Icon: FaShoppingBasket,
-      },
-    ],
-  },
+  // {
+  //   title: "Earn & Rent Hub",
+  //   TitleIcon: FaHome,
+  //   links: [
+  //     { label: "PG / Rooms on Rent", href: "/others#pg-rooms", Icon: FaHome },
+  //     {
+  //       label: "Calculators on Rent",
+  //       href: "/others#calculators-rent",
+  //       Icon: FaCalculator,
+  //     },
+  //     {
+  //       label: "Electronics on Rent",
+  //       href: "/others#electronics-rent",
+  //       Icon: FaLaptop,
+  //     },
+  //     {
+  //       label: "Room Essentials on Rent",
+  //       href: "/others#room-essentials",
+  //       Icon: MdOutlineOtherHouses,
+  //     },
+  //     {
+  //       label: "Daily Use Items on Rent",
+  //       href: "/others#daily-items-rent",
+  //       Icon: FaShoppingBasket,
+  //     },
+  //   ],
+  // },
   {
     title: "Tuition Services",
     TitleIcon: FaChalkboardTeacher,
